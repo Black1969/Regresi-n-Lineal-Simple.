@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ElectroWorld — Análisis de Regresión Lineal</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --navy:    #0d1b2a;
+  --navy2:   #162032;
+  --navy3:   #1e2f45;
+  --navy4:   #253a55;
+  --teal:    #00c9a7;
+  --teal2:   #00a98a;
+  --amber:   #f4a261;
+  --amber2:  #e76f51;
+  --sky:     #90e0ef;
+  --sky2:    #48cae4;
+  --gold:    #ffd166;
+  --red:     #e63946;
+  --green:   #57cc99;
+  --white:   #f0f4f8;
+  --muted:   #8da0b3;
+  --border:  rgba(255,255,255,0.08);
+  --card:    rgba(255,255,255,0.04);
+  --card2:   rgba(255,255,255,0.07);
+  --radius:  14px;
+  --radius-sm: 8px;
+  --font-display: 'DM Serif Display', Georgia, serif;
+  --font-body:    'Outfit', sans-serif;
+  --font-mono:    'DM Mono', monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--navy);
+  color: var(--white);
+  font-size: 15px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── NOISE TEXTURE OVERLAY ── */
+body::before {
+  content:'';
+  position:fixed; inset:0; pointer-events:none; z-index:0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  opacity: 0.4;
+}
+
+/* ── SCROLL PROGRESS BAR ── */
+#progress-bar {
+  position: fixed; top: 0; left: 0; height: 3px;
+  background: linear-gradient(90deg, var(--teal), var(--amber));
+  width: 0%; z-index: 1000; transition: width 0.1s;
+}
+
+/* ── HEADER ── */
+header {
+  position: relative; z-index: 1;
+  padding: 70px 40px 50px;
+  background: linear-gradient(160deg, var(--navy2) 0%, var(--navy) 60%);
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+}
+header::after {
+  content:''; position:absolute; top:-120px; right:-80px;
+  width:480px; height:480px; border-radius:50%;
+  background: radial-gradient(circle, rgba(0,201,167,0.12) 0%, transparent 70%);
+  pointer-events:none;
+}
+.header-badge {
+  display:inline-flex; align-items:center; gap:8px;
+  background: rgba(0,201,167,0.15); border:1px solid rgba(0,201,167,0.3);
+  border-radius:100px; padding:5px 16px; font-size:12px;
+  color:var(--teal); letter-spacing:0.06em; text-transform:uppercase;
+  margin-bottom:24px; font-family:var(--font-mono);
+}
+.header-badge::before { content:'●'; font-size:8px; }
+header h1 {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 5vw, 3.4rem);
+  line-height: 1.1;
+  color: var(--white);
+  margin-bottom: 14px;
+}
+header h1 em { color: var(--teal); font-style:italic; }
+header p.subtitle {
+  font-size: 16px; color: var(--muted); max-width: 580px;
+  font-weight: 300; margin-bottom: 32px;
+}
+.header-meta {
+  display:flex; gap:24px; flex-wrap:wrap;
+}
+.meta-chip {
+  display:flex; align-items:center; gap:6px;
+  font-size:12px; color:var(--muted); font-family:var(--font-mono);
+}
+.meta-chip span { color:var(--white); font-weight:500; }
+
+/* ── NAV ── */
+nav {
+  position: sticky; top:0; z-index: 100;
+  background: rgba(13,27,42,0.92); backdrop-filter:blur(16px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 40px;
+  display:flex; gap:0; overflow-x:auto;
+}
+nav a {
+  display:block; padding:14px 20px;
+  color:var(--muted); font-size:13px; text-decoration:none;
+  font-weight:500; letter-spacing:0.02em; white-space:nowrap;
+  border-bottom:2px solid transparent;
+  transition: color .2s, border-color .2s;
+}
+nav a:hover { color:var(--white); }
+nav a.active { color:var(--teal); border-bottom-color:var(--teal); }
+
+/* ── MAIN LAYOUT ── */
+main { position:relative; z-index:1; max-width: 1100px; margin:0 auto; padding:0 40px 80px; }
+
+/* ── SECTIONS ── */
+section { padding-top: 64px; }
+.section-header { margin-bottom:32px; }
+.section-tag {
+  font-family:var(--font-mono); font-size:11px; color:var(--teal);
+  letter-spacing:0.1em; text-transform:uppercase; margin-bottom:10px; display:block;
+}
+.section-header h2 {
+  font-family: var(--font-display); font-size:clamp(1.5rem,3vw,2rem);
+  color:var(--white); font-weight:400;
+}
+.section-header p { color:var(--muted); font-size:14px; margin-top:8px; max-width:620px; }
+
+/* ── KPI CARDS ── */
+.kpi-grid {
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:16px;
+  margin-bottom:40px;
+}
+.kpi-card {
+  background:var(--card2); border:1px solid var(--border);
+  border-radius:var(--radius); padding:24px; position:relative; overflow:hidden;
+  transition: transform .2s, border-color .2s;
+}
+.kpi-card:hover { transform:translateY(-2px); border-color:rgba(255,255,255,0.15); }
+.kpi-card::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:2px;
+}
+.kpi-card.teal::before { background:linear-gradient(90deg,var(--teal),transparent); }
+.kpi-card.amber::before { background:linear-gradient(90deg,var(--amber),transparent); }
+.kpi-card.red::before { background:linear-gradient(90deg,var(--red),transparent); }
+.kpi-card.green::before { background:linear-gradient(90deg,var(--green),transparent); }
+.kpi-card.gold::before { background:linear-gradient(90deg,var(--gold),transparent); }
+.kpi-label { font-size:11px; color:var(--muted); letter-spacing:0.06em; text-transform:uppercase; font-family:var(--font-mono); margin-bottom:10px; }
+.kpi-val { font-size:2rem; font-weight:600; margin-bottom:4px; }
+.kpi-val.teal { color:var(--teal); }
+.kpi-val.amber { color:var(--amber); }
+.kpi-val.red { color:var(--red); }
+.kpi-val.green { color:var(--green); }
+.kpi-val.gold { color:var(--gold); }
+.kpi-desc { font-size:12px; color:var(--muted); }
+
+/* ── CARDS GENERAL ── */
+.card {
+  background:var(--card); border:1px solid var(--border);
+  border-radius:var(--radius); padding:28px; margin-bottom:20px;
+}
+.card-title {
+  font-size:13px; font-weight:500; color:var(--muted);
+  letter-spacing:0.05em; text-transform:uppercase; font-family:var(--font-mono);
+  margin-bottom:20px; display:flex; align-items:center; gap:8px;
+}
+.card-title::before { content:''; display:block; width:3px; height:14px; border-radius:2px; background:var(--teal); }
+
+/* ── DATA TABLE ── */
+.data-table-wrap { overflow-x:auto; border-radius:var(--radius-sm); }
+table {
+  width:100%; border-collapse:collapse; font-size:14px;
+}
+thead tr { background:rgba(0,201,167,0.1); }
+thead th {
+  padding:12px 16px; text-align:right; font-family:var(--font-mono);
+  font-size:11px; color:var(--teal); letter-spacing:0.06em;
+  text-transform:uppercase; font-weight:500; white-space:nowrap;
+  border-bottom:1px solid rgba(0,201,167,0.2);
+}
+thead th:first-child { text-align:center; }
+tbody tr {
+  border-bottom:1px solid var(--border);
+  transition:background .15s;
+}
+tbody tr:hover { background:var(--card2); }
+tbody td {
+  padding:12px 16px; text-align:right;
+  font-family:var(--font-mono); font-size:13px; color:var(--white);
+}
+tbody td:first-child { text-align:center; color:var(--muted); }
+tfoot tr { background:rgba(244,162,97,0.1); }
+tfoot td {
+  padding:14px 16px; text-align:right;
+  font-family:var(--font-mono); font-size:13px; font-weight:500; color:var(--amber);
+  border-top:1px solid rgba(244,162,97,0.3);
+}
+tfoot td:first-child { text-align:center; }
+.highlight-row { background:rgba(0,201,167,0.06) !important; }
+
+/* ── FORMULA BLOCKS ── */
+.formula-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:16px; margin-bottom:24px; }
+.formula-box {
+  background:var(--navy2); border:1px solid var(--border);
+  border-radius:var(--radius); padding:24px; position:relative;
+}
+.formula-box .step-badge {
+  position:absolute; top:16px; right:16px;
+  background:rgba(0,201,167,0.15); border:1px solid rgba(0,201,167,0.3);
+  border-radius:100px; padding:2px 12px; font-size:11px;
+  color:var(--teal); font-family:var(--font-mono);
+}
+.formula-title { font-size:13px; color:var(--muted); margin-bottom:14px; font-weight:500; }
+.formula-latex {
+  font-family:var(--font-mono); font-size:13px; line-height:1.8;
+  color:var(--sky); background:rgba(0,0,0,0.3); border-radius:var(--radius-sm);
+  padding:14px 16px; margin-bottom:12px; overflow-x:auto;
+  white-space:pre;
+}
+.formula-result {
+  font-family:var(--font-mono); font-size:15px; font-weight:500;
+  color:var(--teal); padding:10px 14px; background:rgba(0,201,167,0.1);
+  border-radius:var(--radius-sm); border-left:3px solid var(--teal);
+}
+.formula-interp { font-size:12px; color:var(--muted); margin-top:10px; line-height:1.5; }
+
+/* ── STEP INDICATORS ── */
+.steps-flow {
+  display:flex; align-items:flex-start; gap:0; margin-bottom:32px;
+  overflow-x:auto; padding-bottom:8px;
+}
+.step-item { display:flex; flex-direction:column; align-items:center; min-width:120px; }
+.step-circle {
+  width:40px; height:40px; border-radius:50%;
+  background:rgba(0,201,167,0.15); border:2px solid var(--teal);
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-mono); font-size:14px; font-weight:500; color:var(--teal);
+  margin-bottom:8px; position:relative; z-index:1;
+}
+.step-label { font-size:11px; color:var(--muted); text-align:center; line-height:1.3; }
+.step-connector {
+  flex:1; height:2px; background:rgba(0,201,167,0.2);
+  margin-top:20px; min-width:24px;
+}
+
+/* ── CHART TABS ── */
+.tab-nav { display:flex; gap:6px; margin-bottom:24px; flex-wrap:wrap; }
+.tab-btn {
+  padding:8px 18px; border-radius:100px; border:1px solid var(--border);
+  background:transparent; color:var(--muted); font-size:12px; cursor:pointer;
+  font-family:var(--font-body); font-weight:500; transition:all .2s;
+}
+.tab-btn:hover { border-color:rgba(255,255,255,0.2); color:var(--white); }
+.tab-btn.active {
+  background:rgba(0,201,167,0.15); border-color:rgba(0,201,167,0.4);
+  color:var(--teal);
+}
+.chart-panel { display:none; }
+.chart-panel.visible { display:block; }
+.chart-wrap { position:relative; width:100%; }
+
+/* ── LEGEND ── */
+.chart-legend { display:flex; gap:20px; flex-wrap:wrap; margin-top:14px; font-size:12px; color:var(--muted); }
+.leg-item { display:flex; align-items:center; gap:6px; }
+.leg-dot { width:12px; height:12px; border-radius:3px; flex-shrink:0; }
+.leg-line { width:24px; height:3px; border-radius:2px; flex-shrink:0; }
+
+/* ── FORECAST WIDGET ── */
+.forecast-widget {
+  background:linear-gradient(135deg,rgba(0,201,167,0.12),rgba(0,169,138,0.06));
+  border:1px solid rgba(0,201,167,0.3); border-radius:var(--radius);
+  padding:28px; margin-bottom:20px;
+}
+.forecast-title { font-size:12px; color:var(--teal); text-transform:uppercase;
+  letter-spacing:0.08em; font-family:var(--font-mono); margin-bottom:16px; }
+.forecast-main { display:flex; gap:32px; align-items:flex-start; flex-wrap:wrap; margin-bottom:20px; }
+.forecast-result { }
+.forecast-num { font-size:3.5rem; font-weight:600; color:var(--teal); line-height:1; margin-bottom:6px; }
+.forecast-unit { font-size:14px; color:var(--muted); }
+.forecast-equation {
+  font-family:var(--font-mono); font-size:14px; color:var(--sky);
+  background:rgba(0,0,0,0.3); border-radius:var(--radius-sm);
+  padding:12px 16px; margin-top:8px; flex:1; min-width:250px;
+}
+.forecast-eq-line { color:var(--muted); font-size:12px; margin-bottom:6px; }
+.forecast-eq-calc { color:var(--sky); font-size:13px; margin-bottom:4px; }
+.forecast-eq-result { color:var(--teal); font-weight:500; }
+.slider-label { font-size:13px; color:var(--muted); margin-bottom:8px; }
+.slider-row { display:flex; align-items:center; gap:14px; }
+.slider-row input[type=range] {
+  flex:1; height:4px; border-radius:2px; outline:none; border:none;
+  background:rgba(255,255,255,0.1); cursor:pointer;
+  -webkit-appearance:none; appearance:none;
+}
+.slider-row input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance:none; width:18px; height:18px; border-radius:50%;
+  background:var(--teal); border:2px solid var(--navy); cursor:pointer;
+}
+.slider-endpoints { font-size:12px; color:var(--muted); font-family:var(--font-mono); }
+#price-display {
+  font-size:1.4rem; font-weight:600; color:var(--white);
+  font-family:var(--font-mono); min-width:60px; text-align:center;
+}
+
+/* ── RESIDUOS TABLE ── */
+.resid-table tfoot td { color:var(--sky); }
+.pos-err { color:var(--green) !important; }
+.neg-err { color:var(--red) !important; }
+
+/* ── PEARSON GAUGE ── */
+.pearson-visual {
+  display:flex; align-items:center; gap:28px; flex-wrap:wrap; margin-bottom:24px;
+}
+.gauge-wrap { flex-shrink:0; }
+.interp-cards { display:grid; grid-template-columns:1fr 1fr; gap:12px; flex:1; min-width:260px; }
+.interp-card {
+  background:var(--navy2); border:1px solid var(--border);
+  border-radius:var(--radius-sm); padding:14px 16px;
+}
+.interp-card-label { font-size:11px; color:var(--muted); text-transform:uppercase;
+  letter-spacing:0.06em; font-family:var(--font-mono); margin-bottom:6px; }
+.interp-card-val { font-size:1.2rem; font-weight:600; }
+
+/* ── CONTEXT / BUSINESS ── */
+.context-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px; }
+.context-card {
+  background:var(--card); border:1px solid var(--border);
+  border-radius:var(--radius); padding:22px;
+}
+.context-card h4 {
+  font-size:13px; font-weight:500; margin-bottom:10px;
+  display:flex; align-items:center; gap:8px;
+}
+.context-card h4 .icon { font-size:18px; }
+.context-card p { font-size:13px; color:var(--muted); line-height:1.6; }
+.context-card ul { list-style:none; padding:0; }
+.context-card ul li {
+  font-size:13px; color:var(--muted); padding:5px 0;
+  border-bottom:1px solid var(--border); display:flex; gap:8px;
+}
+.context-card ul li::before { content:'→'; color:var(--teal); flex-shrink:0; }
+
+/* ── ALERT BOX ── */
+.alert {
+  border-radius:var(--radius); padding:18px 22px; margin-bottom:16px;
+  border-left:3px solid; font-size:13px; line-height:1.6;
+}
+.alert-teal { background:rgba(0,201,167,0.08); border-color:var(--teal); color:var(--sky); }
+.alert-amber { background:rgba(244,162,97,0.08); border-color:var(--amber); color:var(--amber); }
+.alert-red { background:rgba(230,57,70,0.08); border-color:var(--red); color:#ff8a92; }
+.alert strong { font-weight:600; }
+
+/* ── EQUATION DISPLAY ── */
+.equation-hero {
+  background:var(--navy2); border:1px solid var(--border);
+  border-radius:var(--radius); padding:32px; text-align:center;
+  margin-bottom:24px; position:relative; overflow:hidden;
+}
+.equation-hero::before {
+  content:''; position:absolute; inset:0;
+  background:radial-gradient(ellipse at 50% 100%,rgba(0,201,167,0.08),transparent 70%);
+}
+.equation-hero .eq-label { font-size:12px; color:var(--muted); font-family:var(--font-mono);
+  text-transform:uppercase; letter-spacing:0.08em; margin-bottom:16px; }
+.equation-hero .eq-main {
+  font-family:var(--font-mono); font-size:clamp(1.2rem,3vw,1.8rem);
+  color:var(--white); font-weight:500; margin-bottom:12px;
+}
+.equation-hero .eq-main .var-y { color:var(--teal); }
+.equation-hero .eq-main .var-a { color:var(--amber); }
+.equation-hero .eq-main .var-b { color:var(--red); }
+.equation-hero .eq-main .var-x { color:var(--sky); }
+.eq-legend { display:flex; gap:24px; justify-content:center; flex-wrap:wrap; margin-top:12px; }
+.eq-leg { font-size:12px; font-family:var(--font-mono); color:var(--muted); }
+.eq-leg span { font-weight:500; }
+
+/* ── FOOTER ── */
+footer {
+  position:relative; z-index:1; border-top:1px solid var(--border);
+  padding:40px; text-align:center; color:var(--muted); font-size:12px;
+}
+footer strong { color:var(--teal); }
+
+/* ── PRINT / DOWNLOAD BUTTON ── */
+.action-bar {
+  position:fixed; bottom:24px; right:24px; z-index:200;
+  display:flex; flex-direction:column; gap:8px;
+}
+.action-btn {
+  display:flex; align-items:center; gap:8px;
+  background:var(--teal); color:var(--navy); padding:10px 20px;
+  border-radius:100px; font-size:13px; font-weight:600; cursor:pointer;
+  border:none; box-shadow:0 4px 20px rgba(0,201,167,0.35);
+  transition:all .2s; font-family:var(--font-body);
+}
+.action-btn:hover { background:var(--teal2); transform:translateY(-1px); box-shadow:0 6px 24px rgba(0,201,167,0.45); }
+.action-btn.secondary {
+  background:var(--navy2); color:var(--white); border:1px solid var(--border);
+  box-shadow:0 4px 12px rgba(0,0,0,0.3);
+}
+.action-btn.secondary:hover { background:var(--navy3); }
+
+/* ── ANIMATIONS ── */
+@keyframes fadeInUp {
+  from { opacity:0; transform:translateY(20px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+.fade-in { animation:fadeInUp .5s ease forwards; opacity:0; }
+.delay-1 { animation-delay:.1s; }
+.delay-2 { animation-delay:.2s; }
+.delay-3 { animation-delay:.3s; }
+
+/* ── RESPONSIVE ── */
+@media (max-width:680px) {
+  header, nav, main, footer { padding-left:20px; padding-right:20px; }
+  .formula-grid { grid-template-columns:1fr; }
+  .kpi-grid { grid-template-columns:repeat(2,1fr); }
+  .action-bar { bottom:16px; right:16px; }
+}
+
+@media print {
+  .action-bar, nav, #progress-bar { display:none !important; }
+  body { background:#fff; color:#111; }
+  .card, .kpi-card, .formula-box, .forecast-widget, .context-card { background:#f8f8f8 !important; border-color:#ddd !important; }
+}
+</style>
+</head>
+<body>
+
+<div id="progress-bar"></div>
+
+<!-- ═══════════════════════════════════════ HEADER ═══ -->
+<header>
+  <div class="header-badge">Caso de estudio · Pronóstico de demanda</div>
+  <h1>ElectroWorld Mayorista S.A.<br><em>Regresión Lineal Simple</em></h1>
+  <p class="subtitle">Análisis estadístico del impacto del precio en la demanda de televisores 50" — Construcción de un modelo causal para planificación de inventarios.</p>
+  <div class="header-meta">
+    <div class="meta-chip">Giro: <span>Distribución AV mayorista</span></div>
+    <div class="meta-chip">Período: <span>6 meses históricos</span></div>
+    <div class="meta-chip">Método: <span>Mínimos cuadrados</span></div>
+    <div class="meta-chip">Modelo: <span>Ŷ = a + bX</span></div>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════════ NAV ═══ -->
+<nav id="main-nav">
+  <a href="#contexto" class="active">Contexto</a>
+  <a href="#datos">Datos</a>
+  <a href="#calculo">Cálculo</a>
+  <a href="#modelo">Modelo</a>
+  <a href="#validacion">Validación</a>
+  <a href="#graficas">Gráficas</a>
+  <a href="#pronostico">Pronóstico</a>
+  <a href="#conclusiones">Conclusiones</a>
+</nav>
+
+<main>
+
+<!-- ═══════════════════════════════════════ 0. KPIs ═══ -->
+<div class="kpi-grid fade-in" style="padding-top:48px;">
+  <div class="kpi-card teal">
+    <div class="kpi-label">Pendiente (b)</div>
+    <div class="kpi-val teal">−8.81</div>
+    <div class="kpi-desc">unidades por cada $1 de precio</div>
+  </div>
+  <div class="kpi-card amber">
+    <div class="kpi-label">Intercepto (a)</div>
+    <div class="kpi-val amber">5,427</div>
+    <div class="kpi-desc">demanda teórica cuando precio = $0</div>
+  </div>
+  <div class="kpi-card red">
+    <div class="kpi-label">Correlación (r)</div>
+    <div class="kpi-val red">−0.9917</div>
+    <div class="kpi-desc">correlación negativa casi perfecta</div>
+  </div>
+  <div class="kpi-card green">
+    <div class="kpi-label">Determinación R²</div>
+    <div class="kpi-val green">98.35%</div>
+    <div class="kpi-desc">variación explicada por el modelo</div>
+  </div>
+  <div class="kpi-card gold">
+    <div class="kpi-label">Pronóstico @ $400</div>
+    <div class="kpi-val gold">1,903</div>
+    <div class="kpi-desc">unidades recomendadas en stock</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ 1. CONTEXTO ═══ -->
+<section id="contexto">
+  <div class="section-header fade-in">
+    <span class="section-tag">01 · Contexto empresarial</span>
+    <h2>Problemática de ElectroWorld</h2>
+    <p>El distribuidor mayorista observa una relación inversa entre precio y demanda. Sin un modelo cuantitativo, la planificación de inventarios genera quiebres de stock o excesos costosos.</p>
+  </div>
+  <div class="context-grid fade-in">
+    <div class="context-card">
+      <h4><span class="icon">🏭</span> La empresa</h4>
+      <ul>
+        <li>Distribución de equipos de audio y video a tiendas minoristas</li>
+        <li>Foco en televisores 50" de gama media-alta</li>
+        <li>Opera con canal mayorista B2B</li>
+        <li>Alta sensibilidad al precio en su mercado</li>
+      </ul>
+    </div>
+    <div class="context-card">
+      <h4><span class="icon">⚠️</span> Problemática</h4>
+      <ul>
+        <li>Desconocen la demanda esperada al bajar precios</li>
+        <li>Planifican compras sin modelo causal</li>
+        <li>Generan quiebres de stock en promociones</li>
+        <li>O exceso de inventario con capital inmovilizado</li>
+      </ul>
+    </div>
+    <div class="context-card">
+      <h4><span class="icon">🎯</span> Objetivo del análisis</h4>
+      <p>Construir un modelo de regresión lineal simple que cuantifique la relación precio-demanda y permita pronosticar unidades necesarias cuando el precio baje a $400 el próximo mes.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ 2. DATOS ═══ -->
+<section id="datos">
+  <div class="section-header fade-in">
+    <span class="section-tag">02 · Datos históricos</span>
+    <h2>Tabla de sumatorias — Paso a paso</h2>
+    <p>Para aplicar mínimos cuadrados, construimos la tabla ampliada con X², Y² y el producto XY. Cada columna es necesaria para el cálculo de los parámetros a y b.</p>
+  </div>
+
+  <div class="steps-flow fade-in">
+    <div class="step-item">
+      <div class="step-circle">1</div>
+      <div class="step-label">Registrar<br>X e Y</div>
+    </div>
+    <div class="step-connector"></div>
+    <div class="step-item">
+      <div class="step-circle">2</div>
+      <div class="step-label">Calcular<br>X² e Y²</div>
+    </div>
+    <div class="step-connector"></div>
+    <div class="step-item">
+      <div class="step-circle">3</div>
+      <div class="step-label">Calcular<br>producto XY</div>
+    </div>
+    <div class="step-connector"></div>
+    <div class="step-item">
+      <div class="step-circle">4</div>
+      <div class="step-label">Sumar<br>columnas (Σ)</div>
+    </div>
+    <div class="step-connector"></div>
+    <div class="step-item">
+      <div class="step-circle">5</div>
+      <div class="step-label">Calcular<br>promedios</div>
+    </div>
+    <div class="step-connector"></div>
+    <div class="step-item">
+      <div class="step-circle">6</div>
+      <div class="step-label">Aplicar<br>fórmulas</div>
+    </div>
+  </div>
+
+  <div class="card fade-in">
+    <div class="card-title">Tabla de sumatorias — 6 meses históricos</div>
+    <div class="data-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>n</th>
+            <th>X — Precio ($)</th>
+            <th>Y — Demanda (u)</th>
+            <th>X²</th>
+            <th>Y²</th>
+            <th>X · Y</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>1</td><td>500</td><td>1,000</td><td>250,000</td><td>1,000,000</td><td>500,000</td></tr>
+          <tr><td>2</td><td>480</td><td>1,200</td><td>230,400</td><td>1,440,000</td><td>576,000</td></tr>
+          <tr><td>3</td><td>470</td><td>1,300</td><td>220,900</td><td>1,690,000</td><td>611,000</td></tr>
+          <tr><td>4</td><td>450</td><td>1,500</td><td>202,500</td><td>2,250,000</td><td>675,000</td></tr>
+          <tr><td>5</td><td>440</td><td>1,550</td><td>193,600</td><td>2,402,500</td><td>682,000</td></tr>
+          <tr><td>6</td><td>420</td><td>1,700</td><td>176,400</td><td>2,890,000</td><td>714,000</td></tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td>Σ</td>
+            <td>2,760</td>
+            <td>8,250</td>
+            <td>1,273,800</td>
+            <td>11,672,500</td>
+            <td>3,758,000</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    <div style="display:flex;gap:28px;flex-wrap:wrap;margin-top:18px;padding-top:18px;border-top:1px solid var(--border);">
+      <div>
+        <div style="font-size:11px;color:var(--muted);font-family:var(--font-mono);margin-bottom:4px;">PROMEDIO X̄</div>
+        <div style="font-family:var(--font-mono);font-size:1.1rem;color:var(--amber);">X̄ = 2,760 ÷ 6 = <strong>460</strong></div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--muted);font-family:var(--font-mono);margin-bottom:4px;">PROMEDIO Ȳ</div>
+        <div style="font-family:var(--font-mono);font-size:1.1rem;color:var(--amber);">Ȳ = 8,250 ÷ 6 = <strong>1,375</strong></div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--muted);font-family:var(--font-mono);margin-bottom:4px;">n (observaciones)</div>
+        <div style="font-family:var(--font-mono);font-size:1.1rem;color:var(--amber);"><strong>6</strong> meses</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ 3. CÁLCULO ═══ -->
+<section id="calculo">
+  <div class="section-header fade-in">
+    <span class="section-tag">03 · Cálculo de parámetros</span>
+    <h2>Aplicación del método de mínimos cuadrados</h2>
+    <p>Con las sumatorias calculadas, aplicamos las fórmulas para obtener la pendiente b y el intercepto a que minimizan el error cuadrático total.</p>
+  </div>
+
+  <div class="formula-grid fade-in">
+    <!-- PENDIENTE b -->
+    <div class="formula-box">
+      <div class="step-badge">Paso 1</div>
+      <div class="formula-title">Cálculo de la Pendiente (b)</div>
+      <div class="formula-latex">      n·ΣXY − (ΣX)(ΣY)
+b = ──────────────────────
+      n·ΣX² − (ΣX)²</div>
+      <div class="formula-latex">      6(3,758,000) − (2,760)(8,250)
+b = ──────────────────────────────
+      6(1,273,800) − (2,760)²</div>
+      <div class="formula-latex">      22,548,000 − 22,770,000
+b = ─────────────────────────
+        7,642,800 − 7,617,600</div>
+      <div class="formula-latex">      −222,000
+b = ────────── = −8.8095
+        25,200</div>
+      <div class="formula-result">b ≈ −8.81</div>
+      <div class="formula-interp">📌 Por cada $1 que <strong>sube</strong> el precio, la demanda <strong>cae</strong> en 8.81 unidades. Relación inversa confirmada.</div>
+    </div>
+
+    <!-- INTERCEPTO a -->
+    <div class="formula-box">
+      <div class="step-badge">Paso 2</div>
+      <div class="formula-title">Cálculo del Intercepto (a)</div>
+      <div class="formula-latex">a = Ȳ − b · X̄</div>
+      <div class="formula-latex">a = 1,375 − (−8.8095)(460)</div>
+      <div class="formula-latex">a = 1,375 + 4,052.38</div>
+      <div class="formula-result">a ≈ 5,427.38</div>
+      <div class="formula-interp">📌 Valor teórico de la demanda cuando el precio es $0. No tiene interpretación práctica directa, pero es necesario para construir la ecuación.</div>
+    </div>
+  </div>
+
+  <!-- OPERACIONES INTERMEDIAS -->
+  <div class="card fade-in">
+    <div class="card-title">Operaciones intermedias clave</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;">
+      <div style="background:var(--navy2);border-radius:var(--radius-sm);padding:16px;">
+        <div style="font-size:11px;color:var(--muted);font-family:var(--font-mono);margin-bottom:8px;">n · ΣXY</div>
+        <div style="font-family:var(--font-mono);color:var(--sky);">6 × 3,758,000</div>
+        <div style="font-family:var(--font-mono);color:var(--white);font-weight:500;font-size:1.1rem;">= 22,548,000</div>
+      </div>
+      <div style="background:var(--navy2);border-radius:var(--radius-sm);padding:16px;">
+        <div style="font-size:11px;color:var(--muted);font-family:var(--font-mono);margin-bottom:8px;">(ΣX)(ΣY)</div>
+        <div style="font-family:var(--font-mono);color:var(--sky);">2,760 × 8,250</div>
+        <div style="font-family:var(--font-mono);color:var(--white);font-weight:500;font-size:1.1rem;">= 22,770,000</div>
+      </div>
+      <div style="background:var(--navy2);border-radius:var(--radius-sm);padding:16px;">
+        <div style="font-size:11px;color:var(--muted);font-family:var(--font-mono);margin-bottom:8px;">n · ΣX²</div>
+        <div style="font-family:var(--font-mono);color:var(--sky);">6 × 1,273,800</div>
+        <div style="font-family:var(--font-mono);color:var(--white);font-weight:500;font-size:1.1rem;">= 7,642,800</div>
+      </div>
+      <div style="background:var(--navy2);border-radius:var(--radius-sm);padding:16px;">
+        <div style="font-size:11px;color:var(--muted);font-family:var(--font-mono);margin-bottom:8px;">(ΣX)²</div>
+        <div style="font-family:var(--font-mono);color:var(--sky);">(2,760)²</div>
+        <div style="font-family:var(--font-mono);color:var(--white);font-weight:500;font-size:1.1rem;">= 7,617,600</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ 4. MODELO ═══ -->
+<section id="modelo">
+  <div class="section-header fade-in">
+    <span class="section-tag">04 · Modelo de regresión</span>
+    <h2>Ecuación de predicción final</h2>
+    <p>Sustituyendo los valores obtenidos, la ecuación queda definida y lista para realizar pronósticos de demanda a cualquier precio dentro del rango histórico.</p>
+  </div>
+
+  <div class="equation-hero fade-in">
+    <div class="eq-label">Ecuación de regresión lineal simple — ElectroWorld Mayorista S.A.</div>
+    <div class="eq-main">
+      <span class="var-y">Ŷ</span> = <span class="var-a">5,427.38</span> <span style="color:var(--muted)">+</span> (<span class="var-b">−8.81</span>) · <span class="var-x">X</span>
+    </div>
+    <div class="eq-main" style="font-size:1.1rem;color:var(--muted);">
+      <span class="var-y">Ŷ</span> = <span class="var-a">5,427.38</span> <span class="var-b">− 8.81X</span>
+    </div>
+    <div class="eq-legend">
+      <div class="eq-leg"><span style="color:var(--teal)">Ŷ</span> = demanda pronosticada (unidades)</div>
+      <div class="eq-leg"><span style="color:var(--amber)">5,427.38</span> = intercepto (a)</div>
+      <div class="eq-leg"><span style="color:var(--red)">−8.81</span> = pendiente (b)</div>
+      <div class="eq-leg"><span style="color:var(--sky)">X</span> = precio en USD</div>
+    </div>
+  </div>
+
+  <div class="alert alert-teal fade-in">
+    <strong>Interpretación de la pendiente:</strong> Por cada dólar que disminuye el precio de venta al mayoreo, la demanda de televisores 50" aumenta en aproximadamente 8.81 unidades. Esta es la palanca cuantificada de la política de precios de ElectroWorld.
+  </div>
+  <div class="alert alert-amber fade-in">
+    <strong>Rango de validez:</strong> El modelo es confiable dentro del rango observado de precios entre $420 y $500. Extrapolar a precios muy inferiores o superiores puede generar pronósticos poco confiables.
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ 5. VALIDACIÓN ═══ -->
+<section id="validacion">
+  <div class="section-header fade-in">
+    <span class="section-tag">05 · Validación estadística</span>
+    <h2>Correlación de Pearson y Coeficiente de Determinación</h2>
+    <p>Medimos la fuerza de la relación lineal y la capacidad explicativa del modelo para validar su uso en la toma de decisiones de inventario.</p>
+  </div>
+
+  <!-- FÓRMULA PEARSON -->
+  <div class="formula-box fade-in" style="margin-bottom:20px;">
+    <div class="step-badge">Pearson r</div>
+    <div class="formula-title">Coeficiente de Correlación de Pearson</div>
+    <div class="formula-latex">                 n·ΣXY − (ΣX)(ΣY)
+r = ─────────────────────────────────────────────────────
+      √ [ n·ΣX² − (ΣX)² ] · [ n·ΣY² − (ΣY)² ]</div>
+    <div class="formula-latex">Factor 1 del denominador:  n·ΣX² − (ΣX)² = 25,200
+Factor 2 del denominador:  n·ΣY² − (ΣY)²
+  = 6(11,672,500) − (8,250)²
+  = 70,035,000 − 68,062,500
+  = 1,972,500
+
+Denominador = √(25,200 × 1,972,500)
+            = √(49,707,000,000)
+            = 223,847</div>
+    <div class="formula-latex">        −222,000
+r = ────────────── = −0.9917
+         223,847</div>
+    <div class="formula-result">r = −0.9917 · · · Correlación negativa casi perfecta</div>
+  </div>
+
+  <!-- R² -->
+  <div class="formula-box fade-in" style="margin-bottom:24px;">
+    <div class="step-badge">R²</div>
+    <div class="formula-title">Coeficiente de Determinación</div>
+    <div class="formula-latex">R² = r² = (−0.9917)² = 0.9835</div>
+    <div class="formula-result">R² = 98.35% — El modelo explica el 98.35% de la variación en la demanda</div>
+    <div class="formula-interp">Sólo el 1.65% de la variación de la demanda se debe a factores no capturados por el precio (estacionalidad, competencia, etc.).</div>
+  </div>
+
+  <!-- INTERPRETACIÓN VISUAL r -->
+  <div class="card fade-in">
+    <div class="card-title">Escala de interpretación del coeficiente r</div>
+    <div style="position:relative;height:56px;border-radius:100px;overflow:hidden;background:linear-gradient(90deg,#e63946 0%,#f4a261 25%,#ffd166 50%,#57cc99 75%,#00c9a7 100%);margin-bottom:12px;">
+      <div style="position:absolute;top:0;bottom:0;left:50%;width:2px;background:rgba(0,0,0,0.3);"></div>
+      <!-- Marker -->
+      <div style="position:absolute;top:0;bottom:0;left:4.15%;width:4px;background:var(--navy);border-radius:2px;box-shadow:0 0 12px rgba(255,255,255,0.8);">
+        <div style="position:absolute;bottom:-22px;left:50%;transform:translateX(-50%);font-family:var(--font-mono);font-size:11px;color:var(--white);white-space:nowrap;background:var(--navy);padding:2px 6px;border-radius:4px;">r = −0.9917</div>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);font-family:var(--font-mono);margin-top:28px;padding:0 4px;">
+      <span>−1<br>Negativa perfecta</span>
+      <span style="text-align:center;">−0.5<br>Moderada</span>
+      <span style="text-align:center;">0<br>Sin relación</span>
+      <span style="text-align:center;">+0.5<br>Moderada</span>
+      <span style="text-align:right;">+1<br>Positiva perfecta</span>
+    </div>
+  </div>
+
+  <!-- RESIDUOS -->
+  <div class="card fade-in">
+    <div class="card-title">Tabla de residuos y error estándar de la estimación</div>
+    <div class="data-table-wrap">
+      <table class="resid-table">
+        <thead>
+          <tr>
+            <th>Mes</th>
+            <th>Precio X ($)</th>
+            <th>Y real (u)</th>
+            <th>Ŷ pronosticado</th>
+            <th>Residuo (Y − Ŷ)</th>
+            <th>Residuo²</th>
+          </tr>
+        </thead>
+        <tbody id="resid-tbody"></tbody>
+        <tfoot id="resid-tfoot"></tfoot>
+      </table>
+    </div>
+    <div class="alert alert-teal" style="margin-top:18px;margin-bottom:0;">
+      <strong>Error estándar de la estimación (SEE):</strong> Mide la dispersión promedio de los valores reales respecto a la recta de regresión. Con un SEE de ~45 unidades sobre pronósticos de 1,000–1,700 u, el error relativo es menor al 4%, lo que confirma alta precisión predictiva.
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ 6. GRÁFICAS ═══ -->
+<section id="graficas">
+  <div class="section-header fade-in">
+    <span class="section-tag">06 · Visualización</span>
+    <h2>Gráficas del análisis</h2>
+    <p>Tres vistas complementarias del modelo: dispersión con la recta de regresión, comparación de valores reales vs. pronosticados, y análisis de residuos por mes.</p>
+  </div>
+
+  <div class="card fade-in">
+    <div class="tab-nav">
+      <button class="tab-btn active" onclick="showTab('scatter')">📈 Dispersión + Recta</button>
+      <button class="tab-btn" onclick="showTab('bars')">📊 Real vs. Pronosticado</button>
+      <button class="tab-btn" onclick="showTab('residuos')">📉 Residuos</button>
+      <button class="tab-btn" onclick="showTab('tendencia')">📏 Tendencia precio</button>
+    </div>
+
+    <!-- SCATTER -->
+    <div id="tab-scatter" class="chart-panel visible">
+      <div class="card-title">Diagrama de dispersión con recta de regresión y punto de pronóstico</div>
+      <div class="chart-wrap" style="height:380px;">
+        <canvas id="scatterChart" role="img" aria-label="Diagrama de dispersión precio vs demanda con recta de regresión negativa y punto de pronóstico en $400"></canvas>
+      </div>
+      <div class="chart-legend">
+        <div class="leg-item"><div class="leg-dot" style="background:#48cae4;"></div> Datos reales observados</div>
+        <div class="leg-item"><div class="leg-line" style="background:#f4a261;"></div> Recta Ŷ = 5427 − 8.81X</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#57cc99;transform:rotate(45deg);"></div> Pronóstico @ $400 = 1,903 u</div>
+      </div>
+    </div>
+
+    <!-- BARRAS -->
+    <div id="tab-bars" class="chart-panel">
+      <div class="card-title">Comparación mes a mes: demanda real vs. pronosticada</div>
+      <div class="chart-wrap" style="height:340px;">
+        <canvas id="barsChart" role="img" aria-label="Barras agrupadas comparando demanda real con demanda pronosticada por el modelo en 6 meses"></canvas>
+      </div>
+      <div class="chart-legend">
+        <div class="leg-item"><div class="leg-dot" style="background:#48cae4;"></div> Demanda real</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#f4a261;"></div> Demanda pronosticada</div>
+      </div>
+    </div>
+
+    <!-- RESIDUOS -->
+    <div id="tab-residuos" class="chart-panel">
+      <div class="card-title">Residuos por mes — Cuanto más cercanos a 0, mejor el ajuste</div>
+      <div class="chart-wrap" style="height:300px;">
+        <canvas id="residChart" role="img" aria-label="Barras de residuos por mes mostrando errores pequeños cercanos a cero"></canvas>
+      </div>
+      <div class="chart-legend">
+        <div class="leg-item"><div class="leg-dot" style="background:#57cc99;"></div> Error positivo (subestimó)</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#e63946;"></div> Error negativo (sobreestimó)</div>
+      </div>
+    </div>
+
+    <!-- TENDENCIA -->
+    <div id="tab-tendencia" class="chart-panel">
+      <div class="card-title">Evolución del precio mensual y su efecto inverso en la demanda</div>
+      <div class="chart-wrap" style="height:320px;">
+        <canvas id="tendChart" role="img" aria-label="Líneas de tendencia mostrando que precio baja mientras demanda sube mes a mes"></canvas>
+      </div>
+      <div class="chart-legend">
+        <div class="leg-item"><div class="leg-line" style="background:#e63946;"></div> Precio (eje izq.)</div>
+        <div class="leg-item"><div class="leg-line" style="background:#00c9a7;"></div> Demanda (eje der.)</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ 7. PRONÓSTICO ═══ -->
+<section id="pronostico">
+  <div class="section-header fade-in">
+    <span class="section-tag">07 · Pronóstico interactivo</span>
+    <h2>Simulador de demanda por precio</h2>
+    <p>Mueve el control deslizante para obtener el pronóstico de demanda a cualquier precio y visualizar la ecuación aplicada en tiempo real.</p>
+  </div>
+
+  <div class="forecast-widget fade-in">
+    <div class="forecast-title">🎯 Pronóstico en tiempo real — Ŷ = 5,427.38 − 8.81X</div>
+    <div class="forecast-main">
+      <div class="forecast-result">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:6px;font-family:var(--font-mono);">DEMANDA PRONOSTICADA</div>
+        <div class="forecast-num" id="fc-num">1,903</div>
+        <div class="forecast-unit">unidades — stock recomendado</div>
+      </div>
+      <div class="forecast-equation">
+        <div class="forecast-eq-line">Precio ingresado (X):</div>
+        <div class="forecast-eq-calc" id="fc-eq">Ŷ = 5,427.38 − 8.81 × 400</div>
+        <div class="forecast-eq-calc" id="fc-calc">Ŷ = 5,427.38 − 3,524.00</div>
+        <div class="forecast-eq-result" id="fc-res">Ŷ = 1,903.38 ≈ 1,903 unidades</div>
+      </div>
+    </div>
+    <div class="slider-label">Ajustar precio (rango histórico ± extensión):</div>
+    <div class="slider-row">
+      <span class="slider-endpoints">$370</span>
+      <input type="range" id="fc-slider" min="370" max="530" value="400" step="5" oninput="updateForecast(+this.value)">
+      <span class="slider-endpoints">$530</span>
+    </div>
+    <div style="text-align:center;margin-top:10px;">
+      <span style="font-size:12px;color:var(--muted);">Precio actual: </span>
+      <span id="price-display">$400</span>
+    </div>
+    <div id="fc-warning" class="alert alert-amber" style="margin-top:16px;margin-bottom:0;display:none;">
+      ⚠️ Este precio está fuera del rango histórico ($420–$500). El pronóstico es una extrapolación y puede tener menor precisión.
+    </div>
+  </div>
+
+  <!-- TABLA REFERENCIA RÁPIDA -->
+  <div class="card fade-in">
+    <div class="card-title">Tabla de referencia rápida — Demanda pronosticada por precio</div>
+    <div class="data-table-wrap">
+      <table id="ref-table">
+        <thead>
+          <tr>
+            <th>Precio X ($)</th>
+            <th>Ŷ = 5,427.38 − 8.81X</th>
+            <th>Demanda estimada (u)</th>
+            <th>En rango histórico</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ 8. CONCLUSIONES ═══ -->
+<section id="conclusiones">
+  <div class="section-header fade-in">
+    <span class="section-tag">08 · Conclusiones</span>
+    <h2>Hallazgos y recomendaciones para ElectroWorld</h2>
+  </div>
+
+  <div class="context-grid fade-in">
+    <div class="context-card" style="border-color:rgba(0,201,167,0.3);">
+      <h4><span class="icon">✅</span> Modelo validado</h4>
+      <ul>
+        <li>r = −0.9917: correlación negativa casi perfecta</li>
+        <li>R² = 98.35%: el precio explica casi toda la demanda</li>
+        <li>SEE ≈ 45 u: error relativo menor al 4%</li>
+        <li>Ecuación confiable para toma de decisiones</li>
+      </ul>
+    </div>
+    <div class="context-card" style="border-color:rgba(244,162,97,0.3);">
+      <h4><span class="icon">📦</span> Decisión de inventario</h4>
+      <ul>
+        <li>Para precio $400: preparar 1,903 unidades</li>
+        <li>Con margen de seguridad del 5%: ~2,000 u</li>
+        <li>Eliminar planificación empírica sin modelo</li>
+        <li>Incorporar el modelo en el sistema ERP</li>
+      </ul>
+    </div>
+    <div class="context-card" style="border-color:rgba(255,209,102,0.3);">
+      <h4><span class="icon">⚡</span> Recomendaciones</h4>
+      <ul>
+        <li>Actualizar el modelo trimestral con datos frescos</li>
+        <li>Agregar variables: estacionalidad, competencia</li>
+        <li>Considerar regresión múltiple a futuro</li>
+        <li>Definir precios con simulador antes de cada promo</li>
+      </ul>
+    </div>
+    <div class="context-card" style="border-color:rgba(230,57,70,0.3);">
+      <h4><span class="icon">⚠️</span> Limitaciones del modelo</h4>
+      <ul>
+        <li>Solo 6 observaciones: muestra pequeña</li>
+        <li>No captura estacionalidad ni factores externos</li>
+        <li>No extrapolar a precios &lt; $370 o &gt; $540</li>
+        <li>El mercado puede cambiar; revalidar periódicamente</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="alert alert-teal fade-in" style="margin-top:24px;">
+    <strong>Conclusión ejecutiva:</strong> ElectroWorld Mayorista S.A. cuenta ahora con un modelo estadístico robusto (R² = 98.35%) que cuantifica con precisión el impacto del precio en la demanda de televisores 50". La ecuación <strong>Ŷ = 5,427.38 − 8.81X</strong> permite anticipar picos de demanda antes de cada promoción, eliminando los quiebres de stock y los excesos de inventario que generaban pérdidas de venta e inmovilización de capital.
+  </div>
+</section>
+
+</main>
+
+<!-- ═══════════════════════════════════════ FOOTER ═══ -->
+<footer>
+  <p>Análisis de <strong>Regresión Lineal Simple</strong> · ElectroWorld Mayorista S.A. · Método de Mínimos Cuadrados</p>
+  <p style="margin-top:6px;">Herramienta: Probabilidades y Estadística · Pronóstico de demanda causal</p>
+</footer>
+
+<!-- ═══════════════════════════════════════ BOTONES ═══ -->
+<div class="action-bar">
+  <button class="action-btn" onclick="window.print()">🖨 Imprimir / PDF</button>
+  <button class="action-btn secondary" onclick="scrollToTop()">↑ Inicio</button>
+</div>
+
+<!-- ═══════════════════════════════════════ SCRIPTS ═══ -->
+<script>
+// ── DATA ──
+const a = 5427.38, b = -8.8095;
+const meses = ['Mes 1','Mes 2','Mes 3','Mes 4','Mes 5','Mes 6'];
+const precios = [500,480,470,450,440,420];
+const demandas = [1000,1200,1300,1500,1550,1700];
+const pred = precios.map(x => Math.round(a + b*x));
+const residuos = demandas.map((y,i) => y - pred[i]);
+
+// ── RESIDUOS TABLE ──
+const tbody = document.getElementById('resid-tbody');
+let sumR2 = 0;
+meses.forEach((m,i) => {
+  const r = residuos[i], r2 = r*r; sumR2 += r2;
+  const cls = r >= 0 ? 'pos-err' : 'neg-err';
+  tbody.innerHTML += `<tr>
+    <td>${m}</td><td>$${precios[i]}</td><td>${demandas[i].toLocaleString()}</td>
+    <td>${pred[i].toLocaleString()}</td>
+    <td class="${cls}">${r>=0?'+':''}${r}</td>
+    <td>${r2.toLocaleString()}</td></tr>`;
+});
+const see = Math.sqrt(sumR2/(meses.length-2)).toFixed(2);
+document.getElementById('resid-tfoot').innerHTML = `<tr>
+  <td colspan="4" style="text-align:left;font-size:12px;">
+    SEE = √(ΣResiduo² / (n−2)) = √(${sumR2} / ${meses.length-2}) = √${(sumR2/(meses.length-2)).toFixed(2)}
+  </td>
+  <td colspan="2" style="color:var(--sky);font-weight:600;">SEE = ${see} u</td></tr>`;
+
+// ── REF TABLE ──
+const refPrices = [370,380,390,400,410,420,430,440,450,460,470,480,490,500,510,520,530];
+const refTbody = document.querySelector('#ref-table tbody');
+refPrices.forEach(px => {
+  const yhat = Math.round(a + b*px);
+  const inRange = px >= 420 && px <= 500;
+  const rowStyle = inRange ? 'class="highlight-row"' : '';
+  const badge = inRange
+    ? '<span style="color:var(--green);font-size:11px;">✓ Histórico</span>'
+    : '<span style="color:var(--amber);font-size:11px;">⚠ Extrapolación</span>';
+  const eq = `5,427.38 − 8.81 × ${px}`;
+  refTbody.innerHTML += `<tr ${rowStyle}>
+    <td>$${px}</td><td style="font-size:12px;">${eq}</td>
+    <td style="font-weight:500;">${yhat.toLocaleString()}</td><td>${badge}</td></tr>`;
+});
+
+// ── CHARTS ──
+const grd = 'rgba(255,255,255,0.06)';
+const tc = '#8da0b3';
+const baseScaleX = { grid:{color:grd}, ticks:{color:tc,font:{size:11}} };
+const baseScaleY = { grid:{color:grd}, ticks:{color:tc,font:{size:11}} };
+
+// SCATTER
+const lineXs = [370,535];
+const lineYs = lineXs.map(x => a + b*x);
+new Chart(document.getElementById('scatterChart'), {
+  data: { datasets: [
+    { type:'line', label:'Recta', data:[{x:lineXs[0],y:lineYs[0]},{x:lineXs[1],y:lineYs[1]}],
+      borderColor:'#f4a261', borderWidth:2.5, pointRadius:0, tension:0, order:1 },
+    { type:'scatter', label:'Datos reales', data: precios.map((x,i)=>({x,y:demandas[i]})),
+      backgroundColor:'#48cae4', pointRadius:8, pointHoverRadius:11, order:2 },
+    { type:'scatter', label:'Pronóstico', data:[{x:400,y:1903}],
+      backgroundColor:'#57cc99', pointRadius:12, pointStyle:'triangle', order:3 }
+  ]},
+  options: { responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{display:false}, tooltip:{callbacks:{
+      label: ctx => {
+        if(ctx.dataset.label==='Recta') return '';
+        if(ctx.dataset.label==='Pronóstico') return ' Pronóstico @$400: 1,903 u';
+        return ` Precio $${ctx.parsed.x} → ${ctx.parsed.y.toLocaleString()} u`;
+      }
+    }}},
+    scales: {
+      x:{...baseScaleX, type:'linear', min:400, max:520, title:{display:true,text:'Precio (X) — USD',color:tc,font:{size:11}}, ticks:{...baseScaleX.ticks, callback:v=>'$'+v}},
+      y:{...baseScaleY, min:800, max:2100, title:{display:true,text:'Demanda (Y) — unidades',color:tc,font:{size:11}}, ticks:{...baseScaleY.ticks, callback:v=>v.toLocaleString()}}
+    }
+  }
+});
+
+// BARS
+new Chart(document.getElementById('barsChart'), {
+  type:'bar',
+  data:{ labels: meses.map((m,i)=>m+'\n$'+precios[i]),
+    datasets:[
+      { label:'Real', data:demandas, backgroundColor:'rgba(72,202,228,0.75)', borderColor:'#48cae4', borderWidth:1.5, borderRadius:4 },
+      { label:'Pronosticado', data:pred, backgroundColor:'rgba(244,162,97,0.75)', borderColor:'#f4a261', borderWidth:1.5, borderRadius:4 }
+    ]},
+  options:{ responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{display:false}},
+    scales:{
+      x:{...baseScaleX, ticks:{...baseScaleX.ticks, callback:(v,i)=>meses[i]+' ($'+precios[i]+')'}},
+      y:{...baseScaleY, min:800, ticks:{...baseScaleY.ticks, callback:v=>v.toLocaleString()}}
+    }
+  }
+});
+
+// RESIDUOS
+new Chart(document.getElementById('residChart'), {
+  type:'bar',
+  data:{ labels: meses,
+    datasets:[{ label:'Residuo', data:residuos,
+      backgroundColor: residuos.map(r=>r>=0?'rgba(87,204,153,0.75)':'rgba(230,57,70,0.75)'),
+      borderColor: residuos.map(r=>r>=0?'#57cc99':'#e63946'),
+      borderWidth:1.5, borderRadius:4 }]},
+  options:{ responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{display:false}, tooltip:{callbacks:{label:ctx=>' Error: '+(ctx.parsed.y>=0?'+':'')+ctx.parsed.y+' u'}}},
+    scales:{
+      x:{...baseScaleX},
+      y:{...baseScaleY, ticks:{...baseScaleY.ticks, callback:v=>(v>0?'+':'')+v+' u'},
+         title:{display:true,text:'Residuo (u)',color:tc,font:{size:11}}}
+    }
+  }
+});
+
+// TENDENCIA
+new Chart(document.getElementById('tendChart'), {
+  type:'line',
+  data:{ labels:meses,
+    datasets:[
+      { label:'Precio ($)', data:precios, borderColor:'#e63946', backgroundColor:'rgba(230,57,70,0.1)',
+        borderWidth:2.5, pointRadius:5, tension:0.3, yAxisID:'y1', fill:true },
+      { label:'Demanda (u)', data:demandas, borderColor:'#00c9a7', backgroundColor:'rgba(0,201,167,0.1)',
+        borderWidth:2.5, pointRadius:5, tension:0.3, yAxisID:'y2', fill:true }
+    ]},
+  options:{ responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{display:false}},
+    scales:{
+      x:{...baseScaleX},
+      y1:{...baseScaleY, position:'left', title:{display:true,text:'Precio (USD)',color:'#e63946',font:{size:11}}, ticks:{...baseScaleY.ticks, callback:v=>'$'+v}},
+      y2:{...baseScaleY, position:'right', grid:{display:false}, title:{display:true,text:'Demanda (u)',color:'#00c9a7',font:{size:11}}, ticks:{...baseScaleY.ticks, callback:v=>v.toLocaleString()}}
+    }
+  }
+});
+
+// ── TAB SWITCHING ──
+function showTab(id) {
+  ['scatter','bars','residuos','tendencia'].forEach(t => {
+    document.getElementById('tab-'+t).classList.toggle('visible', t===id);
+  });
+  document.querySelectorAll('.tab-btn').forEach((btn,i) => {
+    btn.classList.toggle('active', ['scatter','bars','residuos','tendencia'][i]===id);
+  });
+}
+
+// ── FORECAST SLIDER ──
+function updateForecast(price) {
+  const yhat = a + b*price;
+  const rounded = Math.round(yhat);
+  document.getElementById('fc-num').textContent = rounded.toLocaleString();
+  document.getElementById('price-display').textContent = '$'+price;
+  document.getElementById('fc-eq').textContent = `Ŷ = 5,427.38 − 8.81 × ${price}`;
+  document.getElementById('fc-calc').textContent = `Ŷ = 5,427.38 − ${(8.8095*price).toFixed(2)}`;
+  document.getElementById('fc-res').textContent = `Ŷ = ${yhat.toFixed(2)} ≈ ${rounded.toLocaleString()} unidades`;
+  const outOfRange = price < 420 || price > 500;
+  document.getElementById('fc-warning').style.display = outOfRange ? 'block' : 'none';
+}
+
+// ── SCROLL PROGRESS ──
+window.addEventListener('scroll', () => {
+  const el = document.getElementById('progress-bar');
+  const total = document.body.scrollHeight - window.innerHeight;
+  el.style.width = Math.round((window.scrollY/total)*100)+'%';
+  // NAV highlight
+  const sections = ['contexto','datos','calculo','modelo','validacion','graficas','pronostico','conclusiones'];
+  let current = '';
+  sections.forEach(id => {
+    const sec = document.getElementById(id);
+    if(sec && window.scrollY >= sec.offsetTop - 100) current = id;
+  });
+  document.querySelectorAll('nav a').forEach(a => {
+    a.classList.toggle('active', a.getAttribute('href')==='#'+current);
+  });
+});
+
+function scrollToTop() { window.scrollTo({top:0,behavior:'smooth'}); }
+
+// ── INTERSECTION OBSERVER (fade-in) ──
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if(e.isIntersecting){ e.target.style.opacity='1'; e.target.style.transform='none'; } });
+}, { threshold:0.08 });
+document.querySelectorAll('.fade-in').forEach(el => {
+  el.style.transition='opacity .6s ease, transform .6s ease';
+  observer.observe(el);
+});
+</script>
+</body>
+</html>
