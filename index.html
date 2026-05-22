@@ -3,587 +3,439 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ElectroWorld — Análisis de Regresión Lineal</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<title>ElectroWorld — Regresión Lineal Simple</title>
 <style>
-:root {
-  --navy:    #0d1b2a;
-  --navy2:   #162032;
-  --navy3:   #1e2f45;
-  --navy4:   #253a55;
-  --teal:    #00c9a7;
-  --teal2:   #00a98a;
-  --amber:   #f4a261;
-  --amber2:  #e76f51;
-  --sky:     #90e0ef;
-  --sky2:    #48cae4;
-  --gold:    #ffd166;
-  --red:     #e63946;
-  --green:   #57cc99;
-  --white:   #f0f4f8;
-  --muted:   #8da0b3;
-  --border:  rgba(255,255,255,0.08);
-  --card:    rgba(255,255,255,0.04);
-  --card2:   rgba(255,255,255,0.07);
-  --radius:  14px;
-  --radius-sm: 8px;
-  --font-display: 'DM Serif Display', Georgia, serif;
-  --font-body:    'Outfit', sans-serif;
-  --font-mono:    'DM Mono', monospace;
+/* ═══════════ RESET & VARIABLES ═══════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0d1b2a;--navy2:#162032;--navy3:#1e2f45;
+  --teal:#00c9a7;--teal2:#00a98a;
+  --amber:#f4a261;--amber2:#e76f51;
+  --sky:#90e0ef;--sky2:#48cae4;
+  --gold:#ffd166;--red:#e63946;--green:#57cc99;
+  --white:#f0f4f8;--muted:#8da0b3;
+  --border:rgba(255,255,255,0.09);
+  --card:rgba(255,255,255,0.04);
+  --card2:rgba(255,255,255,0.08);
+  --r:14px;--rs:8px;
+}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Segoe UI',system-ui,sans-serif;
+  background:var(--navy);color:var(--white);
+  font-size:15px;line-height:1.65;
+  -webkit-font-smoothing:antialiased;
 }
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+/* ═══════════ PROGRESS BAR ═══════════ */
+#pgbar{position:fixed;top:0;left:0;height:3px;
+  background:linear-gradient(90deg,var(--teal),var(--amber));
+  width:0%;z-index:9999;transition:width .1s}
 
-html { scroll-behavior: smooth; }
+/* ═══════════ HEADER ═══════════ */
+header{
+  padding:72px 48px 52px;
+  background:linear-gradient(150deg,var(--navy2) 0%,var(--navy) 70%);
+  border-bottom:1px solid var(--border);position:relative;overflow:hidden;
+}
+header::after{content:'';position:absolute;top:-100px;right:-60px;
+  width:440px;height:440px;border-radius:50%;
+  background:radial-gradient(circle,rgba(0,201,167,.13) 0%,transparent 70%);
+  pointer-events:none}
+.badge{
+  display:inline-flex;align-items:center;gap:7px;
+  background:rgba(0,201,167,.13);border:1px solid rgba(0,201,167,.3);
+  border-radius:100px;padding:4px 16px;font-size:11px;
+  color:var(--teal);letter-spacing:.07em;text-transform:uppercase;
+  margin-bottom:22px;font-family:monospace;
+}
+.badge::before{content:'●';font-size:8px}
+header h1{
+  font-size:clamp(1.8rem,5vw,3.2rem);
+  font-weight:700;line-height:1.1;margin-bottom:14px;
+}
+header h1 em{color:var(--teal);font-style:italic;font-weight:300}
+header p.sub{font-size:15px;color:var(--muted);max-width:580px;
+  font-weight:300;margin-bottom:28px}
+.hmeta{display:flex;gap:22px;flex-wrap:wrap}
+.hm{font-size:12px;color:var(--muted);font-family:monospace}
+.hm b{color:var(--white)}
 
-body {
-  font-family: var(--font-body);
-  background: var(--navy);
-  color: var(--white);
-  font-size: 15px;
-  line-height: 1.65;
-  -webkit-font-smoothing: antialiased;
-}
-
-/* ── NOISE TEXTURE OVERLAY ── */
-body::before {
-  content:'';
-  position:fixed; inset:0; pointer-events:none; z-index:0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
-  opacity: 0.4;
-}
-
-/* ── SCROLL PROGRESS BAR ── */
-#progress-bar {
-  position: fixed; top: 0; left: 0; height: 3px;
-  background: linear-gradient(90deg, var(--teal), var(--amber));
-  width: 0%; z-index: 1000; transition: width 0.1s;
-}
-
-/* ── HEADER ── */
-header {
-  position: relative; z-index: 1;
-  padding: 70px 40px 50px;
-  background: linear-gradient(160deg, var(--navy2) 0%, var(--navy) 60%);
-  border-bottom: 1px solid var(--border);
-  overflow: hidden;
-}
-header::after {
-  content:''; position:absolute; top:-120px; right:-80px;
-  width:480px; height:480px; border-radius:50%;
-  background: radial-gradient(circle, rgba(0,201,167,0.12) 0%, transparent 70%);
-  pointer-events:none;
-}
-.header-badge {
-  display:inline-flex; align-items:center; gap:8px;
-  background: rgba(0,201,167,0.15); border:1px solid rgba(0,201,167,0.3);
-  border-radius:100px; padding:5px 16px; font-size:12px;
-  color:var(--teal); letter-spacing:0.06em; text-transform:uppercase;
-  margin-bottom:24px; font-family:var(--font-mono);
-}
-.header-badge::before { content:'●'; font-size:8px; }
-header h1 {
-  font-family: var(--font-display);
-  font-size: clamp(2rem, 5vw, 3.4rem);
-  line-height: 1.1;
-  color: var(--white);
-  margin-bottom: 14px;
-}
-header h1 em { color: var(--teal); font-style:italic; }
-header p.subtitle {
-  font-size: 16px; color: var(--muted); max-width: 580px;
-  font-weight: 300; margin-bottom: 32px;
-}
-.header-meta {
-  display:flex; gap:24px; flex-wrap:wrap;
-}
-.meta-chip {
-  display:flex; align-items:center; gap:6px;
-  font-size:12px; color:var(--muted); font-family:var(--font-mono);
-}
-.meta-chip span { color:var(--white); font-weight:500; }
-
-/* ── NAV ── */
-nav {
-  position: sticky; top:0; z-index: 100;
-  background: rgba(13,27,42,0.92); backdrop-filter:blur(16px);
-  border-bottom: 1px solid var(--border);
-  padding: 0 40px;
-  display:flex; gap:0; overflow-x:auto;
-}
-nav a {
-  display:block; padding:14px 20px;
-  color:var(--muted); font-size:13px; text-decoration:none;
-  font-weight:500; letter-spacing:0.02em; white-space:nowrap;
-  border-bottom:2px solid transparent;
-  transition: color .2s, border-color .2s;
-}
-nav a:hover { color:var(--white); }
-nav a.active { color:var(--teal); border-bottom-color:var(--teal); }
-
-/* ── MAIN LAYOUT ── */
-main { position:relative; z-index:1; max-width: 1100px; margin:0 auto; padding:0 40px 80px; }
-
-/* ── SECTIONS ── */
-section { padding-top: 64px; }
-.section-header { margin-bottom:32px; }
-.section-tag {
-  font-family:var(--font-mono); font-size:11px; color:var(--teal);
-  letter-spacing:0.1em; text-transform:uppercase; margin-bottom:10px; display:block;
-}
-.section-header h2 {
-  font-family: var(--font-display); font-size:clamp(1.5rem,3vw,2rem);
-  color:var(--white); font-weight:400;
-}
-.section-header p { color:var(--muted); font-size:14px; margin-top:8px; max-width:620px; }
-
-/* ── KPI CARDS ── */
-.kpi-grid {
-  display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:16px;
-  margin-bottom:40px;
-}
-.kpi-card {
-  background:var(--card2); border:1px solid var(--border);
-  border-radius:var(--radius); padding:24px; position:relative; overflow:hidden;
-  transition: transform .2s, border-color .2s;
-}
-.kpi-card:hover { transform:translateY(-2px); border-color:rgba(255,255,255,0.15); }
-.kpi-card::before {
-  content:''; position:absolute; top:0; left:0; right:0; height:2px;
-}
-.kpi-card.teal::before { background:linear-gradient(90deg,var(--teal),transparent); }
-.kpi-card.amber::before { background:linear-gradient(90deg,var(--amber),transparent); }
-.kpi-card.red::before { background:linear-gradient(90deg,var(--red),transparent); }
-.kpi-card.green::before { background:linear-gradient(90deg,var(--green),transparent); }
-.kpi-card.gold::before { background:linear-gradient(90deg,var(--gold),transparent); }
-.kpi-label { font-size:11px; color:var(--muted); letter-spacing:0.06em; text-transform:uppercase; font-family:var(--font-mono); margin-bottom:10px; }
-.kpi-val { font-size:2rem; font-weight:600; margin-bottom:4px; }
-.kpi-val.teal { color:var(--teal); }
-.kpi-val.amber { color:var(--amber); }
-.kpi-val.red { color:var(--red); }
-.kpi-val.green { color:var(--green); }
-.kpi-val.gold { color:var(--gold); }
-.kpi-desc { font-size:12px; color:var(--muted); }
-
-/* ── CARDS GENERAL ── */
-.card {
-  background:var(--card); border:1px solid var(--border);
-  border-radius:var(--radius); padding:28px; margin-bottom:20px;
-}
-.card-title {
-  font-size:13px; font-weight:500; color:var(--muted);
-  letter-spacing:0.05em; text-transform:uppercase; font-family:var(--font-mono);
-  margin-bottom:20px; display:flex; align-items:center; gap:8px;
-}
-.card-title::before { content:''; display:block; width:3px; height:14px; border-radius:2px; background:var(--teal); }
-
-/* ── DATA TABLE ── */
-.data-table-wrap { overflow-x:auto; border-radius:var(--radius-sm); }
-table {
-  width:100%; border-collapse:collapse; font-size:14px;
-}
-thead tr { background:rgba(0,201,167,0.1); }
-thead th {
-  padding:12px 16px; text-align:right; font-family:var(--font-mono);
-  font-size:11px; color:var(--teal); letter-spacing:0.06em;
-  text-transform:uppercase; font-weight:500; white-space:nowrap;
-  border-bottom:1px solid rgba(0,201,167,0.2);
-}
-thead th:first-child { text-align:center; }
-tbody tr {
+/* ═══════════ NAV ═══════════ */
+nav{
+  position:sticky;top:0;z-index:500;
+  background:rgba(13,27,42,.94);backdrop-filter:blur(18px);
   border-bottom:1px solid var(--border);
-  transition:background .15s;
+  padding:0 40px;display:flex;gap:0;overflow-x:auto;
 }
-tbody tr:hover { background:var(--card2); }
-tbody td {
-  padding:12px 16px; text-align:right;
-  font-family:var(--font-mono); font-size:13px; color:var(--white);
+nav a{
+  display:block;padding:13px 18px;color:var(--muted);
+  font-size:13px;text-decoration:none;font-weight:500;
+  border-bottom:2px solid transparent;white-space:nowrap;
+  transition:color .2s,border-color .2s;
 }
-tbody td:first-child { text-align:center; color:var(--muted); }
-tfoot tr { background:rgba(244,162,97,0.1); }
-tfoot td {
-  padding:14px 16px; text-align:right;
-  font-family:var(--font-mono); font-size:13px; font-weight:500; color:var(--amber);
-  border-top:1px solid rgba(244,162,97,0.3);
-}
-tfoot td:first-child { text-align:center; }
-.highlight-row { background:rgba(0,201,167,0.06) !important; }
+nav a:hover{color:var(--white)}
+nav a.on{color:var(--teal);border-bottom-color:var(--teal)}
 
-/* ── FORMULA BLOCKS ── */
-.formula-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:16px; margin-bottom:24px; }
-.formula-box {
-  background:var(--navy2); border:1px solid var(--border);
-  border-radius:var(--radius); padding:24px; position:relative;
-}
-.formula-box .step-badge {
-  position:absolute; top:16px; right:16px;
-  background:rgba(0,201,167,0.15); border:1px solid rgba(0,201,167,0.3);
-  border-radius:100px; padding:2px 12px; font-size:11px;
-  color:var(--teal); font-family:var(--font-mono);
-}
-.formula-title { font-size:13px; color:var(--muted); margin-bottom:14px; font-weight:500; }
-.formula-latex {
-  font-family:var(--font-mono); font-size:13px; line-height:1.8;
-  color:var(--sky); background:rgba(0,0,0,0.3); border-radius:var(--radius-sm);
-  padding:14px 16px; margin-bottom:12px; overflow-x:auto;
-  white-space:pre;
-}
-.formula-result {
-  font-family:var(--font-mono); font-size:15px; font-weight:500;
-  color:var(--teal); padding:10px 14px; background:rgba(0,201,167,0.1);
-  border-radius:var(--radius-sm); border-left:3px solid var(--teal);
-}
-.formula-interp { font-size:12px; color:var(--muted); margin-top:10px; line-height:1.5; }
+/* ═══════════ MAIN ═══════════ */
+main{max-width:1080px;margin:0 auto;padding:0 40px 90px}
+section{padding-top:64px}
+.stag{font-size:11px;color:var(--teal);letter-spacing:.1em;
+  text-transform:uppercase;font-family:monospace;margin-bottom:10px;display:block}
+.sh h2{font-size:clamp(1.4rem,3vw,2rem);font-weight:700;margin-bottom:8px}
+.sh p{color:var(--muted);font-size:14px;max-width:620px}
+.sh{margin-bottom:30px}
 
-/* ── STEP INDICATORS ── */
-.steps-flow {
-  display:flex; align-items:flex-start; gap:0; margin-bottom:32px;
-  overflow-x:auto; padding-bottom:8px;
+/* ═══════════ KPI GRID ═══════════ */
+.kgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:14px;padding-top:48px;margin-bottom:10px}
+.kc{
+  background:var(--card2);border:1px solid var(--border);
+  border-radius:var(--r);padding:22px;position:relative;overflow:hidden;
+  transition:transform .2s,border-color .2s;
 }
-.step-item { display:flex; flex-direction:column; align-items:center; min-width:120px; }
-.step-circle {
-  width:40px; height:40px; border-radius:50%;
-  background:rgba(0,201,167,0.15); border:2px solid var(--teal);
-  display:flex; align-items:center; justify-content:center;
-  font-family:var(--font-mono); font-size:14px; font-weight:500; color:var(--teal);
-  margin-bottom:8px; position:relative; z-index:1;
-}
-.step-label { font-size:11px; color:var(--muted); text-align:center; line-height:1.3; }
-.step-connector {
-  flex:1; height:2px; background:rgba(0,201,167,0.2);
-  margin-top:20px; min-width:24px;
-}
+.kc:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.16)}
+.kc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.kc.ct::before{background:linear-gradient(90deg,var(--teal),transparent)}
+.kc.ca::before{background:linear-gradient(90deg,var(--amber),transparent)}
+.kc.cr::before{background:linear-gradient(90deg,var(--red),transparent)}
+.kc.cg::before{background:linear-gradient(90deg,var(--green),transparent)}
+.kc.co::before{background:linear-gradient(90deg,var(--gold),transparent)}
+.kl{font-size:10px;color:var(--muted);letter-spacing:.07em;
+  text-transform:uppercase;font-family:monospace;margin-bottom:9px}
+.kv{font-size:1.9rem;font-weight:700;margin-bottom:3px}
+.kv.t{color:var(--teal)}.kv.a{color:var(--amber)}
+.kv.r{color:var(--red)}.kv.g{color:var(--green)}.kv.o{color:var(--gold)}
+.kd{font-size:11px;color:var(--muted)}
 
-/* ── CHART TABS ── */
-.tab-nav { display:flex; gap:6px; margin-bottom:24px; flex-wrap:wrap; }
-.tab-btn {
-  padding:8px 18px; border-radius:100px; border:1px solid var(--border);
-  background:transparent; color:var(--muted); font-size:12px; cursor:pointer;
-  font-family:var(--font-body); font-weight:500; transition:all .2s;
+/* ═══════════ CARD ═══════════ */
+.card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--r);padding:26px;margin-bottom:18px;
 }
-.tab-btn:hover { border-color:rgba(255,255,255,0.2); color:var(--white); }
-.tab-btn.active {
-  background:rgba(0,201,167,0.15); border-color:rgba(0,201,167,0.4);
-  color:var(--teal);
+.ct2{
+  font-size:12px;font-weight:500;color:var(--muted);
+  letter-spacing:.05em;text-transform:uppercase;font-family:monospace;
+  margin-bottom:18px;display:flex;align-items:center;gap:8px;
 }
-.chart-panel { display:none; }
-.chart-panel.visible { display:block; }
-.chart-wrap { position:relative; width:100%; }
+.ct2::before{content:'';display:block;width:3px;height:13px;
+  border-radius:2px;background:var(--teal)}
 
-/* ── LEGEND ── */
-.chart-legend { display:flex; gap:20px; flex-wrap:wrap; margin-top:14px; font-size:12px; color:var(--muted); }
-.leg-item { display:flex; align-items:center; gap:6px; }
-.leg-dot { width:12px; height:12px; border-radius:3px; flex-shrink:0; }
-.leg-line { width:24px; height:3px; border-radius:2px; flex-shrink:0; }
+/* ═══════════ TABLE ═══════════ */
+.tw{overflow-x:auto;border-radius:var(--rs)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead tr{background:rgba(0,201,167,.1)}
+thead th{
+  padding:11px 15px;text-align:right;font-family:monospace;
+  font-size:10px;color:var(--teal);letter-spacing:.07em;
+  text-transform:uppercase;font-weight:600;white-space:nowrap;
+  border-bottom:1px solid rgba(0,201,167,.25);
+}
+thead th:first-child{text-align:center}
+tbody tr{border-bottom:1px solid var(--border);transition:background .15s}
+tbody tr:hover{background:var(--card2)}
+tbody td{padding:11px 15px;text-align:right;font-family:monospace;color:var(--white)}
+tbody td:first-child{text-align:center;color:var(--muted)}
+tfoot tr{background:rgba(244,162,97,.1)}
+tfoot td{
+  padding:13px 15px;text-align:right;font-family:monospace;
+  font-size:13px;font-weight:600;color:var(--amber);
+  border-top:1px solid rgba(244,162,97,.3);
+}
+tfoot td:first-child{text-align:center}
+.hlrow{background:rgba(0,201,167,.06)!important}
+.pe{color:var(--green)!important}.ne{color:var(--red)!important}
 
-/* ── FORECAST WIDGET ── */
-.forecast-widget {
-  background:linear-gradient(135deg,rgba(0,201,167,0.12),rgba(0,169,138,0.06));
-  border:1px solid rgba(0,201,167,0.3); border-radius:var(--radius);
-  padding:28px; margin-bottom:20px;
+/* ═══════════ STEPS FLOW ═══════════ */
+.flow{display:flex;align-items:flex-start;gap:0;
+  margin-bottom:28px;overflow-x:auto;padding-bottom:8px}
+.si{display:flex;flex-direction:column;align-items:center;min-width:110px}
+.sc{
+  width:38px;height:38px;border-radius:50%;
+  background:rgba(0,201,167,.15);border:2px solid var(--teal);
+  display:flex;align-items:center;justify-content:center;
+  font-family:monospace;font-size:13px;font-weight:600;color:var(--teal);
+  margin-bottom:7px;
 }
-.forecast-title { font-size:12px; color:var(--teal); text-transform:uppercase;
-  letter-spacing:0.08em; font-family:var(--font-mono); margin-bottom:16px; }
-.forecast-main { display:flex; gap:32px; align-items:flex-start; flex-wrap:wrap; margin-bottom:20px; }
-.forecast-result { }
-.forecast-num { font-size:3.5rem; font-weight:600; color:var(--teal); line-height:1; margin-bottom:6px; }
-.forecast-unit { font-size:14px; color:var(--muted); }
-.forecast-equation {
-  font-family:var(--font-mono); font-size:14px; color:var(--sky);
-  background:rgba(0,0,0,0.3); border-radius:var(--radius-sm);
-  padding:12px 16px; margin-top:8px; flex:1; min-width:250px;
-}
-.forecast-eq-line { color:var(--muted); font-size:12px; margin-bottom:6px; }
-.forecast-eq-calc { color:var(--sky); font-size:13px; margin-bottom:4px; }
-.forecast-eq-result { color:var(--teal); font-weight:500; }
-.slider-label { font-size:13px; color:var(--muted); margin-bottom:8px; }
-.slider-row { display:flex; align-items:center; gap:14px; }
-.slider-row input[type=range] {
-  flex:1; height:4px; border-radius:2px; outline:none; border:none;
-  background:rgba(255,255,255,0.1); cursor:pointer;
-  -webkit-appearance:none; appearance:none;
-}
-.slider-row input[type=range]::-webkit-slider-thumb {
-  -webkit-appearance:none; width:18px; height:18px; border-radius:50%;
-  background:var(--teal); border:2px solid var(--navy); cursor:pointer;
-}
-.slider-endpoints { font-size:12px; color:var(--muted); font-family:var(--font-mono); }
-#price-display {
-  font-size:1.4rem; font-weight:600; color:var(--white);
-  font-family:var(--font-mono); min-width:60px; text-align:center;
-}
+.sl{font-size:10px;color:var(--muted);text-align:center;line-height:1.3}
+.scon{flex:1;height:2px;background:rgba(0,201,167,.2);margin-top:19px;min-width:16px}
 
-/* ── RESIDUOS TABLE ── */
-.resid-table tfoot td { color:var(--sky); }
-.pos-err { color:var(--green) !important; }
-.neg-err { color:var(--red) !important; }
+/* ═══════════ FORMULA BOXES ═══════════ */
+.fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));
+  gap:15px;margin-bottom:20px}
+.fb{
+  background:var(--navy2);border:1px solid var(--border);
+  border-radius:var(--r);padding:22px;position:relative;
+}
+.fbadge{
+  position:absolute;top:14px;right:14px;
+  background:rgba(0,201,167,.15);border:1px solid rgba(0,201,167,.3);
+  border-radius:100px;padding:2px 12px;font-size:10px;
+  color:var(--teal);font-family:monospace;
+}
+.ftitle{font-size:12px;color:var(--muted);margin-bottom:13px;font-weight:500}
+.fcode{
+  font-family:monospace;font-size:12px;line-height:1.85;
+  color:var(--sky);background:rgba(0,0,0,.35);border-radius:var(--rs);
+  padding:13px 15px;margin-bottom:11px;overflow-x:auto;white-space:pre;
+}
+.fres{
+  font-family:monospace;font-size:14px;font-weight:600;
+  color:var(--teal);padding:9px 13px;
+  background:rgba(0,201,167,.1);border-radius:var(--rs);
+  border-left:3px solid var(--teal);
+}
+.fint{font-size:11px;color:var(--muted);margin-top:9px;line-height:1.55}
 
-/* ── PEARSON GAUGE ── */
-.pearson-visual {
-  display:flex; align-items:center; gap:28px; flex-wrap:wrap; margin-bottom:24px;
+/* ═══════════ EQUATION HERO ═══════════ */
+.eqhero{
+  background:var(--navy2);border:1px solid var(--border);
+  border-radius:var(--r);padding:36px;text-align:center;
+  margin-bottom:20px;position:relative;overflow:hidden;
 }
-.gauge-wrap { flex-shrink:0; }
-.interp-cards { display:grid; grid-template-columns:1fr 1fr; gap:12px; flex:1; min-width:260px; }
-.interp-card {
-  background:var(--navy2); border:1px solid var(--border);
-  border-radius:var(--radius-sm); padding:14px 16px;
-}
-.interp-card-label { font-size:11px; color:var(--muted); text-transform:uppercase;
-  letter-spacing:0.06em; font-family:var(--font-mono); margin-bottom:6px; }
-.interp-card-val { font-size:1.2rem; font-weight:600; }
+.eqhero::before{content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at 50% 110%,rgba(0,201,167,.1),transparent 70%)}
+.eqlabel{font-size:11px;color:var(--muted);font-family:monospace;
+  text-transform:uppercase;letter-spacing:.08em;margin-bottom:18px}
+.eqmain{font-family:monospace;font-size:clamp(1.1rem,3vw,1.75rem);
+  font-weight:600;margin-bottom:14px}
+.vy{color:var(--teal)}.va{color:var(--amber)}
+.vb{color:var(--red)}.vx{color:var(--sky)}
+.eqleg{display:flex;gap:22px;justify-content:center;flex-wrap:wrap;margin-top:10px}
+.eqli{font-size:11px;font-family:monospace;color:var(--muted)}
+.eqli b{font-weight:600}
 
-/* ── CONTEXT / BUSINESS ── */
-.context-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px; }
-.context-card {
-  background:var(--card); border:1px solid var(--border);
-  border-radius:var(--radius); padding:22px;
-}
-.context-card h4 {
-  font-size:13px; font-weight:500; margin-bottom:10px;
-  display:flex; align-items:center; gap:8px;
-}
-.context-card h4 .icon { font-size:18px; }
-.context-card p { font-size:13px; color:var(--muted); line-height:1.6; }
-.context-card ul { list-style:none; padding:0; }
-.context-card ul li {
-  font-size:13px; color:var(--muted); padding:5px 0;
-  border-bottom:1px solid var(--border); display:flex; gap:8px;
-}
-.context-card ul li::before { content:'→'; color:var(--teal); flex-shrink:0; }
+/* ═══════════ ALERTS ═══════════ */
+.alert{border-radius:var(--r);padding:16px 20px;margin-bottom:14px;
+  border-left:3px solid;font-size:13px;line-height:1.6}
+.at{background:rgba(0,201,167,.08);border-color:var(--teal);color:var(--sky)}
+.aa{background:rgba(244,162,97,.08);border-color:var(--amber);color:var(--amber)}
+.ar{background:rgba(230,57,70,.08);border-color:var(--red);color:#ff8a92}
 
-/* ── ALERT BOX ── */
-.alert {
-  border-radius:var(--radius); padding:18px 22px; margin-bottom:16px;
-  border-left:3px solid; font-size:13px; line-height:1.6;
+/* ═══════════ PEARSON SCALE ═══════════ */
+.pscale{
+  position:relative;height:52px;border-radius:100px;overflow:hidden;
+  background:linear-gradient(90deg,#e63946 0%,#f4a261 25%,#ffd166 50%,#57cc99 75%,#00c9a7 100%);
+  margin-bottom:10px;
 }
-.alert-teal { background:rgba(0,201,167,0.08); border-color:var(--teal); color:var(--sky); }
-.alert-amber { background:rgba(244,162,97,0.08); border-color:var(--amber); color:var(--amber); }
-.alert-red { background:rgba(230,57,70,0.08); border-color:var(--red); color:#ff8a92; }
-.alert strong { font-weight:600; }
+.pmark{position:absolute;top:0;bottom:0;width:4px;
+  background:rgba(255,255,255,.9);border-radius:2px;left:4.15%;
+  box-shadow:0 0 12px rgba(255,255,255,.7)}
+.pmark-label{position:absolute;bottom:-22px;left:50%;transform:translateX(-50%);
+  font-family:monospace;font-size:11px;color:var(--white);
+  background:var(--navy);padding:2px 7px;border-radius:4px;white-space:nowrap}
+.paxis{display:flex;justify-content:space-between;font-size:10px;
+  color:var(--muted);font-family:monospace;margin-top:30px;padding:0 4px}
 
-/* ── EQUATION DISPLAY ── */
-.equation-hero {
-  background:var(--navy2); border:1px solid var(--border);
-  border-radius:var(--radius); padding:32px; text-align:center;
-  margin-bottom:24px; position:relative; overflow:hidden;
+/* ═══════════ TABS ═══════════ */
+.tabs{display:flex;gap:6px;margin-bottom:22px;flex-wrap:wrap}
+.tbtn{
+  padding:7px 17px;border-radius:100px;border:1px solid var(--border);
+  background:transparent;color:var(--muted);font-size:12px;cursor:pointer;
+  font-family:inherit;font-weight:500;transition:all .2s;
 }
-.equation-hero::before {
-  content:''; position:absolute; inset:0;
-  background:radial-gradient(ellipse at 50% 100%,rgba(0,201,167,0.08),transparent 70%);
-}
-.equation-hero .eq-label { font-size:12px; color:var(--muted); font-family:var(--font-mono);
-  text-transform:uppercase; letter-spacing:0.08em; margin-bottom:16px; }
-.equation-hero .eq-main {
-  font-family:var(--font-mono); font-size:clamp(1.2rem,3vw,1.8rem);
-  color:var(--white); font-weight:500; margin-bottom:12px;
-}
-.equation-hero .eq-main .var-y { color:var(--teal); }
-.equation-hero .eq-main .var-a { color:var(--amber); }
-.equation-hero .eq-main .var-b { color:var(--red); }
-.equation-hero .eq-main .var-x { color:var(--sky); }
-.eq-legend { display:flex; gap:24px; justify-content:center; flex-wrap:wrap; margin-top:12px; }
-.eq-leg { font-size:12px; font-family:var(--font-mono); color:var(--muted); }
-.eq-leg span { font-weight:500; }
+.tbtn:hover{border-color:rgba(255,255,255,.2);color:var(--white)}
+.tbtn.on{background:rgba(0,201,167,.15);border-color:rgba(0,201,167,.4);color:var(--teal)}
+.cpanel{display:none}.cpanel.vis{display:block}
+.cwrap{position:relative;width:100%}
+canvas.chart{border-radius:var(--rs)}
 
-/* ── FOOTER ── */
-footer {
-  position:relative; z-index:1; border-top:1px solid var(--border);
-  padding:40px; text-align:center; color:var(--muted); font-size:12px;
-}
-footer strong { color:var(--teal); }
+/* ═══════════ LEGEND ═══════════ */
+.cleg{display:flex;gap:18px;flex-wrap:wrap;margin-top:12px;
+  font-size:11px;color:var(--muted)}
+.cli{display:flex;align-items:center;gap:5px}
+.cld{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+.cll{width:22px;height:3px;border-radius:2px;flex-shrink:0}
 
-/* ── PRINT / DOWNLOAD BUTTON ── */
-.action-bar {
-  position:fixed; bottom:24px; right:24px; z-index:200;
-  display:flex; flex-direction:column; gap:8px;
+/* ═══════════ FORECAST WIDGET ═══════════ */
+.fwid{
+  background:linear-gradient(135deg,rgba(0,201,167,.12),rgba(0,169,138,.05));
+  border:1px solid rgba(0,201,167,.3);border-radius:var(--r);
+  padding:26px;margin-bottom:18px;
 }
-.action-btn {
-  display:flex; align-items:center; gap:8px;
-  background:var(--teal); color:var(--navy); padding:10px 20px;
-  border-radius:100px; font-size:13px; font-weight:600; cursor:pointer;
-  border:none; box-shadow:0 4px 20px rgba(0,201,167,0.35);
-  transition:all .2s; font-family:var(--font-body);
+.fwtitle{font-size:11px;color:var(--teal);text-transform:uppercase;
+  letter-spacing:.08em;font-family:monospace;margin-bottom:16px}
+.fwmain{display:flex;gap:28px;align-items:flex-start;flex-wrap:wrap;margin-bottom:18px}
+.fnum{font-size:3.2rem;font-weight:700;color:var(--teal);line-height:1;margin-bottom:5px}
+.funit{font-size:13px;color:var(--muted)}
+.feq{
+  font-family:monospace;font-size:13px;color:var(--sky);
+  background:rgba(0,0,0,.3);border-radius:var(--rs);
+  padding:13px 16px;flex:1;min-width:230px;line-height:1.9;
 }
-.action-btn:hover { background:var(--teal2); transform:translateY(-1px); box-shadow:0 6px 24px rgba(0,201,167,0.45); }
-.action-btn.secondary {
-  background:var(--navy2); color:var(--white); border:1px solid var(--border);
-  box-shadow:0 4px 12px rgba(0,0,0,0.3);
+.feline{color:var(--muted);font-size:11px}
+input[type=range]{
+  width:100%;height:4px;border-radius:2px;outline:none;border:none;
+  background:rgba(255,255,255,.12);cursor:pointer;
+  -webkit-appearance:none;appearance:none;margin:8px 0;
 }
-.action-btn.secondary:hover { background:var(--navy3); }
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:18px;height:18px;border-radius:50%;
+  background:var(--teal);border:2px solid var(--navy);cursor:pointer;
+}
+.slrow{display:flex;align-items:center;gap:12px;font-size:11px;
+  color:var(--muted);font-family:monospace}
+.slrow input{flex:1}
+#pdisplay{font-size:1.3rem;font-weight:700;color:var(--white);
+  font-family:monospace;text-align:center;margin-top:8px}
 
-/* ── ANIMATIONS ── */
-@keyframes fadeInUp {
-  from { opacity:0; transform:translateY(20px); }
-  to   { opacity:1; transform:translateY(0); }
+/* ═══════════ CONTEXT GRID ═══════════ */
+.cgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.cc{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--r);padding:20px;
 }
-.fade-in { animation:fadeInUp .5s ease forwards; opacity:0; }
-.delay-1 { animation-delay:.1s; }
-.delay-2 { animation-delay:.2s; }
-.delay-3 { animation-delay:.3s; }
+.cc h4{font-size:13px;font-weight:600;margin-bottom:10px;
+  display:flex;align-items:center;gap:7px}
+.cc h4 .ico{font-size:18px}
+.cc p{font-size:12px;color:var(--muted);line-height:1.6}
+.cc ul{list-style:none;padding:0}
+.cc ul li{font-size:12px;color:var(--muted);padding:5px 0;
+  border-bottom:1px solid var(--border);display:flex;gap:7px}
+.cc ul li::before{content:'→';color:var(--teal);flex-shrink:0}
 
-/* ── RESPONSIVE ── */
-@media (max-width:680px) {
-  header, nav, main, footer { padding-left:20px; padding-right:20px; }
-  .formula-grid { grid-template-columns:1fr; }
-  .kpi-grid { grid-template-columns:repeat(2,1fr); }
-  .action-bar { bottom:16px; right:16px; }
+/* ═══════════ INTERMID BOX ═══════════ */
+.ibox{background:var(--navy2);border-radius:var(--rs);padding:15px}
+.ib-l{font-size:10px;color:var(--muted);font-family:monospace;margin-bottom:6px}
+.ib-s{font-family:monospace;color:var(--sky);font-size:12px}
+.ib-v{font-family:monospace;color:var(--white);font-weight:600;font-size:1.05rem}
+.igrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+
+/* ═══════════ FOOTER ═══════════ */
+footer{
+  border-top:1px solid var(--border);padding:36px 40px;
+  text-align:center;color:var(--muted);font-size:12px;
+  position:relative;z-index:1;
 }
+footer b{color:var(--teal)}
 
-@media print {
-  .action-bar, nav, #progress-bar { display:none !important; }
-  body { background:#fff; color:#111; }
-  .card, .kpi-card, .formula-box, .forecast-widget, .context-card { background:#f8f8f8 !important; border-color:#ddd !important; }
+/* ═══════════ FAB BUTTONS ═══════════ */
+.fab{position:fixed;bottom:22px;right:22px;z-index:800;
+  display:flex;flex-direction:column;gap:8px}
+.fbtn{
+  display:flex;align-items:center;gap:7px;
+  background:var(--teal);color:var(--navy);padding:10px 20px;
+  border-radius:100px;font-size:13px;font-weight:700;cursor:pointer;
+  border:none;box-shadow:0 4px 18px rgba(0,201,167,.35);
+  transition:all .2s;font-family:inherit;
+}
+.fbtn:hover{background:var(--teal2);transform:translateY(-1px)}
+.fbtn.sec{
+  background:var(--navy2);color:var(--white);
+  border:1px solid var(--border);box-shadow:0 4px 12px rgba(0,0,0,.3);
+}
+.fbtn.sec:hover{background:var(--navy3)}
+
+/* ═══════════ ANIMATIONS ═══════════ */
+@keyframes fiu{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+.fi{opacity:0;animation:fiu .55s ease forwards}
+.d1{animation-delay:.08s}.d2{animation-delay:.16s}.d3{animation-delay:.24s}
+
+/* ═══════════ RESPONSIVE ═══════════ */
+@media(max-width:640px){
+  header,main,footer{padding-left:18px;padding-right:18px}
+  nav{padding:0 12px}
+  .fgrid{grid-template-columns:1fr}
+  .kgrid{grid-template-columns:repeat(2,1fr)}
+  .fab{bottom:14px;right:14px}
+  .fnum{font-size:2.4rem}
+}
+@media print{
+  .fab,nav,#pgbar{display:none!important}
+  body{background:#fff;color:#111}
+  .card,.kc,.fb,.fwid,.cc{background:#f5f5f5!important;border-color:#ddd!important}
 }
 </style>
 </head>
 <body>
 
-<div id="progress-bar"></div>
+<div id="pgbar"></div>
 
-<!-- ═══════════════════════════════════════ HEADER ═══ -->
+<!-- ══════════════════════ HEADER ══════════════════════ -->
 <header>
-  <div class="header-badge">Caso de estudio · Pronóstico de demanda</div>
+  <div class="badge">Caso de estudio · Pronóstico de demanda</div>
   <h1>ElectroWorld Mayorista S.A.<br><em>Regresión Lineal Simple</em></h1>
-  <p class="subtitle">Análisis estadístico del impacto del precio en la demanda de televisores 50" — Construcción de un modelo causal para planificación de inventarios.</p>
-  <div class="header-meta">
-    <div class="meta-chip">Giro: <span>Distribución AV mayorista</span></div>
-    <div class="meta-chip">Período: <span>6 meses históricos</span></div>
-    <div class="meta-chip">Método: <span>Mínimos cuadrados</span></div>
-    <div class="meta-chip">Modelo: <span>Ŷ = a + bX</span></div>
+  <p class="sub">Análisis estadístico del impacto del precio en la demanda de televisores 50" — Modelo causal para planificación de inventarios con mínimos cuadrados.</p>
+  <div class="hmeta">
+    <div class="hm">Giro: <b>Distribución AV mayorista</b></div>
+    <div class="hm">Período: <b>6 meses históricos</b></div>
+    <div class="hm">Método: <b>Mínimos cuadrados</b></div>
+    <div class="hm">Modelo: <b>Ŷ = a + bX</b></div>
   </div>
 </header>
 
-<!-- ═══════════════════════════════════════ NAV ═══ -->
-<nav id="main-nav">
-  <a href="#contexto" class="active">Contexto</a>
+<!-- ══════════════════════ NAV ══════════════════════ -->
+<nav id="mnav">
+  <a href="#ctx">Contexto</a>
   <a href="#datos">Datos</a>
-  <a href="#calculo">Cálculo</a>
+  <a href="#calc">Cálculo</a>
   <a href="#modelo">Modelo</a>
-  <a href="#validacion">Validación</a>
+  <a href="#valid">Validación</a>
   <a href="#graficas">Gráficas</a>
-  <a href="#pronostico">Pronóstico</a>
-  <a href="#conclusiones">Conclusiones</a>
+  <a href="#pron">Pronóstico</a>
+  <a href="#concl">Conclusiones</a>
 </nav>
 
 <main>
 
-<!-- ═══════════════════════════════════════ 0. KPIs ═══ -->
-<div class="kpi-grid fade-in" style="padding-top:48px;">
-  <div class="kpi-card teal">
-    <div class="kpi-label">Pendiente (b)</div>
-    <div class="kpi-val teal">−8.81</div>
-    <div class="kpi-desc">unidades por cada $1 de precio</div>
-  </div>
-  <div class="kpi-card amber">
-    <div class="kpi-label">Intercepto (a)</div>
-    <div class="kpi-val amber">5,427</div>
-    <div class="kpi-desc">demanda teórica cuando precio = $0</div>
-  </div>
-  <div class="kpi-card red">
-    <div class="kpi-label">Correlación (r)</div>
-    <div class="kpi-val red">−0.9917</div>
-    <div class="kpi-desc">correlación negativa casi perfecta</div>
-  </div>
-  <div class="kpi-card green">
-    <div class="kpi-label">Determinación R²</div>
-    <div class="kpi-val green">98.35%</div>
-    <div class="kpi-desc">variación explicada por el modelo</div>
-  </div>
-  <div class="kpi-card gold">
-    <div class="kpi-label">Pronóstico @ $400</div>
-    <div class="kpi-val gold">1,903</div>
-    <div class="kpi-desc">unidades recomendadas en stock</div>
-  </div>
+<!-- ══ KPIs ══ -->
+<div class="kgrid fi">
+  <div class="kc ct"><div class="kl">Pendiente (b)</div><div class="kv t">−8.81</div><div class="kd">unidades por cada $1 de precio</div></div>
+  <div class="kc ca"><div class="kl">Intercepto (a)</div><div class="kv a">5,427</div><div class="kd">demanda teórica @ precio $0</div></div>
+  <div class="kc cr"><div class="kl">Correlación (r)</div><div class="kv r">−0.9917</div><div class="kd">correlación negativa casi perfecta</div></div>
+  <div class="kc" style="--ac:var(--green)"><div class="kl">Determinación R²</div><div class="kv g">98.35%</div><div class="kd">variación explicada por el modelo</div></div>
+  <div class="kc co"><div class="kl">Pronóstico @ $400</div><div class="kv o">1,903 u</div><div class="kd">unidades recomendadas en stock</div></div>
 </div>
 
-<!-- ═══════════════════════════════════════ 1. CONTEXTO ═══ -->
-<section id="contexto">
-  <div class="section-header fade-in">
-    <span class="section-tag">01 · Contexto empresarial</span>
+<!-- ══════════════════════ 01 CONTEXTO ══════════════════════ -->
+<section id="ctx">
+  <div class="sh fi"><span class="stag">01 · Contexto empresarial</span>
     <h2>Problemática de ElectroWorld</h2>
-    <p>El distribuidor mayorista observa una relación inversa entre precio y demanda. Sin un modelo cuantitativo, la planificación de inventarios genera quiebres de stock o excesos costosos.</p>
+    <p>El distribuidor mayorista observa una relación inversa entre precio y demanda. Sin modelo cuantitativo, la planificación de inventarios genera quiebres de stock o excesos costosos.</p>
   </div>
-  <div class="context-grid fade-in">
-    <div class="context-card">
-      <h4><span class="icon">🏭</span> La empresa</h4>
-      <ul>
-        <li>Distribución de equipos de audio y video a tiendas minoristas</li>
+  <div class="cgrid fi d1">
+    <div class="cc"><h4><span class="ico">🏭</span>La empresa</h4>
+      <ul><li>Distribución de equipos de audio y video a minoristas</li>
         <li>Foco en televisores 50" de gama media-alta</li>
-        <li>Opera con canal mayorista B2B</li>
-        <li>Alta sensibilidad al precio en su mercado</li>
-      </ul>
-    </div>
-    <div class="context-card">
-      <h4><span class="icon">⚠️</span> Problemática</h4>
-      <ul>
-        <li>Desconocen la demanda esperada al bajar precios</li>
+        <li>Canal mayorista B2B con alta sensibilidad al precio</li></ul></div>
+    <div class="cc"><h4><span class="ico">⚠️</span>Problemática</h4>
+      <ul><li>Desconocen demanda esperada al bajar precios</li>
         <li>Planifican compras sin modelo causal</li>
-        <li>Generan quiebres de stock en promociones</li>
-        <li>O exceso de inventario con capital inmovilizado</li>
-      </ul>
-    </div>
-    <div class="context-card">
-      <h4><span class="icon">🎯</span> Objetivo del análisis</h4>
-      <p>Construir un modelo de regresión lineal simple que cuantifique la relación precio-demanda y permita pronosticar unidades necesarias cuando el precio baje a $400 el próximo mes.</p>
-    </div>
+        <li>Quiebres de stock en promociones o exceso de inventario</li></ul></div>
+    <div class="cc"><h4><span class="ico">🎯</span>Objetivo</h4>
+      <p>Construir un modelo de regresión lineal que cuantifique la relación precio-demanda y pronostique unidades necesarias cuando el precio baje a $400 el próximo mes.</p></div>
   </div>
 </section>
 
-<!-- ═══════════════════════════════════════ 2. DATOS ═══ -->
+<!-- ══════════════════════ 02 DATOS ══════════════════════ -->
 <section id="datos">
-  <div class="section-header fade-in">
-    <span class="section-tag">02 · Datos históricos</span>
+  <div class="sh fi"><span class="stag">02 · Datos históricos</span>
     <h2>Tabla de sumatorias — Paso a paso</h2>
-    <p>Para aplicar mínimos cuadrados, construimos la tabla ampliada con X², Y² y el producto XY. Cada columna es necesaria para el cálculo de los parámetros a y b.</p>
+    <p>Para aplicar mínimos cuadrados construimos la tabla ampliada con X², Y² y el producto XY. Cada columna es necesaria para calcular los parámetros a y b.</p>
   </div>
 
-  <div class="steps-flow fade-in">
-    <div class="step-item">
-      <div class="step-circle">1</div>
-      <div class="step-label">Registrar<br>X e Y</div>
-    </div>
-    <div class="step-connector"></div>
-    <div class="step-item">
-      <div class="step-circle">2</div>
-      <div class="step-label">Calcular<br>X² e Y²</div>
-    </div>
-    <div class="step-connector"></div>
-    <div class="step-item">
-      <div class="step-circle">3</div>
-      <div class="step-label">Calcular<br>producto XY</div>
-    </div>
-    <div class="step-connector"></div>
-    <div class="step-item">
-      <div class="step-circle">4</div>
-      <div class="step-label">Sumar<br>columnas (Σ)</div>
-    </div>
-    <div class="step-connector"></div>
-    <div class="step-item">
-      <div class="step-circle">5</div>
-      <div class="step-label">Calcular<br>promedios</div>
-    </div>
-    <div class="step-connector"></div>
-    <div class="step-item">
-      <div class="step-circle">6</div>
-      <div class="step-label">Aplicar<br>fórmulas</div>
-    </div>
+  <div class="flow fi d1">
+    <div class="si"><div class="sc">1</div><div class="sl">Registrar<br>X e Y</div></div>
+    <div class="scon"></div>
+    <div class="si"><div class="sc">2</div><div class="sl">Calcular<br>X² e Y²</div></div>
+    <div class="scon"></div>
+    <div class="si"><div class="sc">3</div><div class="sl">Calcular<br>X·Y</div></div>
+    <div class="scon"></div>
+    <div class="si"><div class="sc">4</div><div class="sl">Sumar<br>columnas Σ</div></div>
+    <div class="scon"></div>
+    <div class="si"><div class="sc">5</div><div class="sl">Calcular<br>promedios</div></div>
+    <div class="scon"></div>
+    <div class="si"><div class="sc">6</div><div class="sl">Aplicar<br>fórmulas</div></div>
   </div>
 
-  <div class="card fade-in">
-    <div class="card-title">Tabla de sumatorias — 6 meses históricos</div>
-    <div class="data-table-wrap">
+  <div class="card fi d2">
+    <div class="ct2">Tabla de sumatorias — 6 meses históricos</div>
+    <div class="tw">
       <table>
-        <thead>
-          <tr>
-            <th>n</th>
-            <th>X — Precio ($)</th>
-            <th>Y — Demanda (u)</th>
-            <th>X²</th>
-            <th>Y²</th>
-            <th>X · Y</th>
-          </tr>
-        </thead>
+        <thead><tr>
+          <th>n</th><th>X — Precio ($)</th><th>Y — Demanda (u)</th>
+          <th>X²</th><th>Y²</th><th>X · Y</th>
+        </tr></thead>
         <tbody>
           <tr><td>1</td><td>500</td><td>1,000</td><td>250,000</td><td>1,000,000</td><td>500,000</td></tr>
           <tr><td>2</td><td>480</td><td>1,200</td><td>230,400</td><td>1,440,000</td><td>576,000</td></tr>
@@ -592,153 +444,109 @@ footer strong { color:var(--teal); }
           <tr><td>5</td><td>440</td><td>1,550</td><td>193,600</td><td>2,402,500</td><td>682,000</td></tr>
           <tr><td>6</td><td>420</td><td>1,700</td><td>176,400</td><td>2,890,000</td><td>714,000</td></tr>
         </tbody>
-        <tfoot>
-          <tr>
-            <td>Σ</td>
-            <td>2,760</td>
-            <td>8,250</td>
-            <td>1,273,800</td>
-            <td>11,672,500</td>
-            <td>3,758,000</td>
-          </tr>
-        </tfoot>
+        <tfoot><tr>
+          <td>Σ</td><td>2,760</td><td>8,250</td>
+          <td>1,273,800</td><td>11,672,500</td><td>3,758,000</td>
+        </tr></tfoot>
       </table>
     </div>
-    <div style="display:flex;gap:28px;flex-wrap:wrap;margin-top:18px;padding-top:18px;border-top:1px solid var(--border);">
-      <div>
-        <div style="font-size:11px;color:var(--muted);font-family:var(--font-mono);margin-bottom:4px;">PROMEDIO X̄</div>
-        <div style="font-family:var(--font-mono);font-size:1.1rem;color:var(--amber);">X̄ = 2,760 ÷ 6 = <strong>460</strong></div>
-      </div>
-      <div>
-        <div style="font-size:11px;color:var(--muted);font-family:var(--font-mono);margin-bottom:4px;">PROMEDIO Ȳ</div>
-        <div style="font-family:var(--font-mono);font-size:1.1rem;color:var(--amber);">Ȳ = 8,250 ÷ 6 = <strong>1,375</strong></div>
-      </div>
-      <div>
-        <div style="font-size:11px;color:var(--muted);font-family:var(--font-mono);margin-bottom:4px;">n (observaciones)</div>
-        <div style="font-family:var(--font-mono);font-size:1.1rem;color:var(--amber);"><strong>6</strong> meses</div>
-      </div>
+    <div style="display:flex;gap:26px;flex-wrap:wrap;margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+      <div><div style="font-size:10px;color:var(--muted);font-family:monospace;margin-bottom:4px">PROMEDIO X̄</div>
+        <div style="font-family:monospace;font-size:1rem;color:var(--amber)">X̄ = 2,760 ÷ 6 = <b>460</b></div></div>
+      <div><div style="font-size:10px;color:var(--muted);font-family:monospace;margin-bottom:4px">PROMEDIO Ȳ</div>
+        <div style="font-family:monospace;font-size:1rem;color:var(--amber)">Ȳ = 8,250 ÷ 6 = <b>1,375</b></div></div>
+      <div><div style="font-size:10px;color:var(--muted);font-family:monospace;margin-bottom:4px">n (observaciones)</div>
+        <div style="font-family:monospace;font-size:1rem;color:var(--amber)"><b>6</b> meses</div></div>
     </div>
   </div>
 </section>
 
-<!-- ═══════════════════════════════════════ 3. CÁLCULO ═══ -->
-<section id="calculo">
-  <div class="section-header fade-in">
-    <span class="section-tag">03 · Cálculo de parámetros</span>
+<!-- ══════════════════════ 03 CÁLCULO ══════════════════════ -->
+<section id="calc">
+  <div class="sh fi"><span class="stag">03 · Cálculo de parámetros</span>
     <h2>Aplicación del método de mínimos cuadrados</h2>
-    <p>Con las sumatorias calculadas, aplicamos las fórmulas para obtener la pendiente b y el intercepto a que minimizan el error cuadrático total.</p>
+    <p>Con las sumatorias obtenidas, aplicamos las fórmulas para calcular b (pendiente) y a (intercepto) que minimizan el error cuadrático total.</p>
   </div>
 
-  <div class="formula-grid fade-in">
-    <!-- PENDIENTE b -->
-    <div class="formula-box">
-      <div class="step-badge">Paso 1</div>
-      <div class="formula-title">Cálculo de la Pendiente (b)</div>
-      <div class="formula-latex">      n·ΣXY − (ΣX)(ΣY)
-b = ──────────────────────
+  <div class="fgrid fi d1">
+    <div class="fb">
+      <div class="fbadge">Paso 1</div>
+      <div class="ftitle">Cálculo de la Pendiente (b)</div>
+      <div class="fcode">      n·ΣXY − (ΣX)(ΣY)
+b = ─────────────────────
       n·ΣX² − (ΣX)²</div>
-      <div class="formula-latex">      6(3,758,000) − (2,760)(8,250)
-b = ──────────────────────────────
-      6(1,273,800) − (2,760)²</div>
-      <div class="formula-latex">      22,548,000 − 22,770,000
-b = ─────────────────────────
-        7,642,800 − 7,617,600</div>
-      <div class="formula-latex">      −222,000
-b = ────────── = −8.8095
-        25,200</div>
-      <div class="formula-result">b ≈ −8.81</div>
-      <div class="formula-interp">📌 Por cada $1 que <strong>sube</strong> el precio, la demanda <strong>cae</strong> en 8.81 unidades. Relación inversa confirmada.</div>
+      <div class="fcode">  6(3,758,000) − (2,760)(8,250)
+= ──────────────────────────────
+  6(1,273,800) − (2,760)²</div>
+      <div class="fcode">  22,548,000 − 22,770,000
+= ───────────────────────────
+    7,642,800 − 7,617,600</div>
+      <div class="fcode">     −222,000
+= ────────────  =  −8.8095
+       25,200</div>
+      <div class="fres">b ≈ −8.81</div>
+      <div class="fint">📌 Por cada $1 que <b>sube</b> el precio, la demanda <b>cae</b> en 8.81 unidades. Relación inversa confirmada.</div>
     </div>
-
-    <!-- INTERCEPTO a -->
-    <div class="formula-box">
-      <div class="step-badge">Paso 2</div>
-      <div class="formula-title">Cálculo del Intercepto (a)</div>
-      <div class="formula-latex">a = Ȳ − b · X̄</div>
-      <div class="formula-latex">a = 1,375 − (−8.8095)(460)</div>
-      <div class="formula-latex">a = 1,375 + 4,052.38</div>
-      <div class="formula-result">a ≈ 5,427.38</div>
-      <div class="formula-interp">📌 Valor teórico de la demanda cuando el precio es $0. No tiene interpretación práctica directa, pero es necesario para construir la ecuación.</div>
+    <div class="fb">
+      <div class="fbadge">Paso 2</div>
+      <div class="ftitle">Cálculo del Intercepto (a)</div>
+      <div class="fcode">a = Ȳ − b · X̄</div>
+      <div class="fcode">a = 1,375 − (−8.8095)(460)</div>
+      <div class="fcode">a = 1,375 + 4,052.38</div>
+      <div class="fres">a ≈ 5,427.38</div>
+      <div class="fint">📌 Valor teórico de la demanda cuando el precio es $0. Necesario para construir la ecuación, sin interpretación práctica directa.</div>
     </div>
   </div>
 
-  <!-- OPERACIONES INTERMEDIAS -->
-  <div class="card fade-in">
-    <div class="card-title">Operaciones intermedias clave</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;">
-      <div style="background:var(--navy2);border-radius:var(--radius-sm);padding:16px;">
-        <div style="font-size:11px;color:var(--muted);font-family:var(--font-mono);margin-bottom:8px;">n · ΣXY</div>
-        <div style="font-family:var(--font-mono);color:var(--sky);">6 × 3,758,000</div>
-        <div style="font-family:var(--font-mono);color:var(--white);font-weight:500;font-size:1.1rem;">= 22,548,000</div>
-      </div>
-      <div style="background:var(--navy2);border-radius:var(--radius-sm);padding:16px;">
-        <div style="font-size:11px;color:var(--muted);font-family:var(--font-mono);margin-bottom:8px;">(ΣX)(ΣY)</div>
-        <div style="font-family:var(--font-mono);color:var(--sky);">2,760 × 8,250</div>
-        <div style="font-family:var(--font-mono);color:var(--white);font-weight:500;font-size:1.1rem;">= 22,770,000</div>
-      </div>
-      <div style="background:var(--navy2);border-radius:var(--radius-sm);padding:16px;">
-        <div style="font-size:11px;color:var(--muted);font-family:var(--font-mono);margin-bottom:8px;">n · ΣX²</div>
-        <div style="font-family:var(--font-mono);color:var(--sky);">6 × 1,273,800</div>
-        <div style="font-family:var(--font-mono);color:var(--white);font-weight:500;font-size:1.1rem;">= 7,642,800</div>
-      </div>
-      <div style="background:var(--navy2);border-radius:var(--radius-sm);padding:16px;">
-        <div style="font-size:11px;color:var(--muted);font-family:var(--font-mono);margin-bottom:8px;">(ΣX)²</div>
-        <div style="font-family:var(--font-mono);color:var(--sky);">(2,760)²</div>
-        <div style="font-family:var(--font-mono);color:var(--white);font-weight:500;font-size:1.1rem;">= 7,617,600</div>
-      </div>
+  <div class="card fi d2">
+    <div class="ct2">Operaciones intermedias clave</div>
+    <div class="igrid">
+      <div class="ibox"><div class="ib-l">n · ΣXY</div><div class="ib-s">6 × 3,758,000</div><div class="ib-v">= 22,548,000</div></div>
+      <div class="ibox"><div class="ib-l">(ΣX)(ΣY)</div><div class="ib-s">2,760 × 8,250</div><div class="ib-v">= 22,770,000</div></div>
+      <div class="ibox"><div class="ib-l">n · ΣX²</div><div class="ib-s">6 × 1,273,800</div><div class="ib-v">= 7,642,800</div></div>
+      <div class="ibox"><div class="ib-l">(ΣX)²</div><div class="ib-s">(2,760)²</div><div class="ib-v">= 7,617,600</div></div>
+      <div class="ibox"><div class="ib-l">Numerador b</div><div class="ib-s">22,548,000 − 22,770,000</div><div class="ib-v">= −222,000</div></div>
+      <div class="ibox"><div class="ib-l">Denominador b</div><div class="ib-s">7,642,800 − 7,617,600</div><div class="ib-v">= 25,200</div></div>
     </div>
   </div>
 </section>
 
-<!-- ═══════════════════════════════════════ 4. MODELO ═══ -->
+<!-- ══════════════════════ 04 MODELO ══════════════════════ -->
 <section id="modelo">
-  <div class="section-header fade-in">
-    <span class="section-tag">04 · Modelo de regresión</span>
+  <div class="sh fi"><span class="stag">04 · Modelo de regresión</span>
     <h2>Ecuación de predicción final</h2>
-    <p>Sustituyendo los valores obtenidos, la ecuación queda definida y lista para realizar pronósticos de demanda a cualquier precio dentro del rango histórico.</p>
+    <p>Sustituyendo los valores obtenidos, la ecuación queda lista para realizar pronósticos de demanda a cualquier precio dentro del rango histórico.</p>
   </div>
-
-  <div class="equation-hero fade-in">
-    <div class="eq-label">Ecuación de regresión lineal simple — ElectroWorld Mayorista S.A.</div>
-    <div class="eq-main">
-      <span class="var-y">Ŷ</span> = <span class="var-a">5,427.38</span> <span style="color:var(--muted)">+</span> (<span class="var-b">−8.81</span>) · <span class="var-x">X</span>
-    </div>
-    <div class="eq-main" style="font-size:1.1rem;color:var(--muted);">
-      <span class="var-y">Ŷ</span> = <span class="var-a">5,427.38</span> <span class="var-b">− 8.81X</span>
-    </div>
-    <div class="eq-legend">
-      <div class="eq-leg"><span style="color:var(--teal)">Ŷ</span> = demanda pronosticada (unidades)</div>
-      <div class="eq-leg"><span style="color:var(--amber)">5,427.38</span> = intercepto (a)</div>
-      <div class="eq-leg"><span style="color:var(--red)">−8.81</span> = pendiente (b)</div>
-      <div class="eq-leg"><span style="color:var(--sky)">X</span> = precio en USD</div>
+  <div class="eqhero fi d1">
+    <div class="eqlabel">Ecuación de regresión lineal simple — ElectroWorld Mayorista S.A.</div>
+    <div class="eqmain"><span class="vy">Ŷ</span> = <span class="va">5,427.38</span> <span class="vb">− 8.81</span> · <span class="vx">X</span></div>
+    <div class="eqleg">
+      <div class="eqli"><b style="color:var(--teal)">Ŷ</b> = demanda pronosticada (unidades)</div>
+      <div class="eqli"><b style="color:var(--amber)">5,427.38</b> = intercepto (a)</div>
+      <div class="eqli"><b style="color:var(--red)">−8.81</b> = pendiente (b)</div>
+      <div class="eqli"><b style="color:var(--sky)">X</b> = precio en USD</div>
     </div>
   </div>
-
-  <div class="alert alert-teal fade-in">
-    <strong>Interpretación de la pendiente:</strong> Por cada dólar que disminuye el precio de venta al mayoreo, la demanda de televisores 50" aumenta en aproximadamente 8.81 unidades. Esta es la palanca cuantificada de la política de precios de ElectroWorld.
-  </div>
-  <div class="alert alert-amber fade-in">
-    <strong>Rango de validez:</strong> El modelo es confiable dentro del rango observado de precios entre $420 y $500. Extrapolar a precios muy inferiores o superiores puede generar pronósticos poco confiables.
-  </div>
+  <div class="alert at fi d2"><b>Interpretación de la pendiente:</b> Por cada dólar que disminuye el precio, la demanda de televisores 50" aumenta en 8.81 unidades. Esa es la palanca cuantificada de la política de precios de ElectroWorld.</div>
+  <div class="alert aa fi d3"><b>Rango de validez:</b> El modelo es confiable dentro del rango histórico de precios entre $420 y $500. Extrapolar fuera de ese rango puede generar pronósticos menos confiables.</div>
 </section>
 
-<!-- ═══════════════════════════════════════ 5. VALIDACIÓN ═══ -->
-<section id="validacion">
-  <div class="section-header fade-in">
-    <span class="section-tag">05 · Validación estadística</span>
+<!-- ══════════════════════ 05 VALIDACIÓN ══════════════════════ -->
+<section id="valid">
+  <div class="sh fi"><span class="stag">05 · Validación estadística</span>
     <h2>Correlación de Pearson y Coeficiente de Determinación</h2>
-    <p>Medimos la fuerza de la relación lineal y la capacidad explicativa del modelo para validar su uso en la toma de decisiones de inventario.</p>
+    <p>Medimos la fuerza de la relación lineal y la capacidad explicativa del modelo para validar su uso en decisiones de inventario.</p>
   </div>
 
-  <!-- FÓRMULA PEARSON -->
-  <div class="formula-box fade-in" style="margin-bottom:20px;">
-    <div class="step-badge">Pearson r</div>
-    <div class="formula-title">Coeficiente de Correlación de Pearson</div>
-    <div class="formula-latex">                 n·ΣXY − (ΣX)(ΣY)
+  <div class="fb fi d1" style="margin-bottom:18px">
+    <div class="fbadge">Pearson r</div>
+    <div class="ftitle">Coeficiente de Correlación de Pearson</div>
+    <div class="fcode">                 n·ΣXY − (ΣX)(ΣY)
 r = ─────────────────────────────────────────────────────
       √ [ n·ΣX² − (ΣX)² ] · [ n·ΣY² − (ΣY)² ]</div>
-    <div class="formula-latex">Factor 1 del denominador:  n·ΣX² − (ΣX)² = 25,200
-Factor 2 del denominador:  n·ΣY² − (ΣY)²
+    <div class="fcode">Factor 1: n·ΣX² − (ΣX)² = 25,200  (ya calculado)
+
+Factor 2: n·ΣY² − (ΣY)²
   = 6(11,672,500) − (8,250)²
   = 70,035,000 − 68,062,500
   = 1,972,500
@@ -746,436 +554,523 @@ Factor 2 del denominador:  n·ΣY² − (ΣY)²
 Denominador = √(25,200 × 1,972,500)
             = √(49,707,000,000)
             = 223,847</div>
-    <div class="formula-latex">        −222,000
-r = ────────────── = −0.9917
+    <div class="fcode">        −222,000
+r = ──────────────  =  −0.9917
          223,847</div>
-    <div class="formula-result">r = −0.9917 · · · Correlación negativa casi perfecta</div>
+    <div class="fres">r = −0.9917 · · · Correlación negativa casi perfecta</div>
   </div>
 
-  <!-- R² -->
-  <div class="formula-box fade-in" style="margin-bottom:24px;">
-    <div class="step-badge">R²</div>
-    <div class="formula-title">Coeficiente de Determinación</div>
-    <div class="formula-latex">R² = r² = (−0.9917)² = 0.9835</div>
-    <div class="formula-result">R² = 98.35% — El modelo explica el 98.35% de la variación en la demanda</div>
-    <div class="formula-interp">Sólo el 1.65% de la variación de la demanda se debe a factores no capturados por el precio (estacionalidad, competencia, etc.).</div>
+  <div class="fb fi d2" style="margin-bottom:22px">
+    <div class="fbadge">R²</div>
+    <div class="ftitle">Coeficiente de Determinación</div>
+    <div class="fcode">R² = r² = (−0.9917)² = 0.9835</div>
+    <div class="fres">R² = 98.35% — El precio explica el 98.35% de la variación en la demanda</div>
+    <div class="fint">Solo el 1.65% de la variación queda sin explicar por el modelo (estacionalidad, competencia, etc.).</div>
   </div>
 
-  <!-- INTERPRETACIÓN VISUAL r -->
-  <div class="card fade-in">
-    <div class="card-title">Escala de interpretación del coeficiente r</div>
-    <div style="position:relative;height:56px;border-radius:100px;overflow:hidden;background:linear-gradient(90deg,#e63946 0%,#f4a261 25%,#ffd166 50%,#57cc99 75%,#00c9a7 100%);margin-bottom:12px;">
-      <div style="position:absolute;top:0;bottom:0;left:50%;width:2px;background:rgba(0,0,0,0.3);"></div>
-      <!-- Marker -->
-      <div style="position:absolute;top:0;bottom:0;left:4.15%;width:4px;background:var(--navy);border-radius:2px;box-shadow:0 0 12px rgba(255,255,255,0.8);">
-        <div style="position:absolute;bottom:-22px;left:50%;transform:translateX(-50%);font-family:var(--font-mono);font-size:11px;color:var(--white);white-space:nowrap;background:var(--navy);padding:2px 6px;border-radius:4px;">r = −0.9917</div>
-      </div>
+  <div class="card fi d3">
+    <div class="ct2">Escala de interpretación del coeficiente r</div>
+    <div class="pscale">
+      <div class="pmark"><div class="pmark-label">r = −0.9917</div></div>
     </div>
-    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);font-family:var(--font-mono);margin-top:28px;padding:0 4px;">
-      <span>−1<br>Negativa perfecta</span>
-      <span style="text-align:center;">−0.5<br>Moderada</span>
-      <span style="text-align:center;">0<br>Sin relación</span>
-      <span style="text-align:center;">+0.5<br>Moderada</span>
-      <span style="text-align:right;">+1<br>Positiva perfecta</span>
+    <div class="paxis">
+      <span>−1<br>Neg. perfecta</span>
+      <span style="text-align:center">−0.5<br>Moderada</span>
+      <span style="text-align:center">0<br>Sin relación</span>
+      <span style="text-align:center">+0.5<br>Moderada</span>
+      <span style="text-align:right">+1<br>Pos. perfecta</span>
     </div>
   </div>
 
-  <!-- RESIDUOS -->
-  <div class="card fade-in">
-    <div class="card-title">Tabla de residuos y error estándar de la estimación</div>
-    <div class="data-table-wrap">
-      <table class="resid-table">
-        <thead>
-          <tr>
-            <th>Mes</th>
-            <th>Precio X ($)</th>
-            <th>Y real (u)</th>
-            <th>Ŷ pronosticado</th>
-            <th>Residuo (Y − Ŷ)</th>
-            <th>Residuo²</th>
-          </tr>
-        </thead>
-        <tbody id="resid-tbody"></tbody>
-        <tfoot id="resid-tfoot"></tfoot>
+  <div class="card fi">
+    <div class="ct2">Tabla de residuos y error estándar de la estimación (SEE)</div>
+    <div class="tw">
+      <table>
+        <thead><tr>
+          <th>Mes</th><th>Precio X ($)</th><th>Y real (u)</th>
+          <th>Ŷ pronosticado</th><th>Residuo (Y−Ŷ)</th><th>Residuo²</th>
+        </tr></thead>
+        <tbody id="rtbody"></tbody>
+        <tfoot id="rtfoot"></tfoot>
       </table>
     </div>
-    <div class="alert alert-teal" style="margin-top:18px;margin-bottom:0;">
-      <strong>Error estándar de la estimación (SEE):</strong> Mide la dispersión promedio de los valores reales respecto a la recta de regresión. Con un SEE de ~45 unidades sobre pronósticos de 1,000–1,700 u, el error relativo es menor al 4%, lo que confirma alta precisión predictiva.
+    <div class="alert at" style="margin-top:16px;margin-bottom:0">
+      <b>Error estándar de la estimación (SEE):</b> Con un SEE de ~45 unidades sobre pronósticos de 1,000–1,700 u, el error relativo es menor al 4%, confirmando alta precisión predictiva del modelo.
     </div>
   </div>
 </section>
 
-<!-- ═══════════════════════════════════════ 6. GRÁFICAS ═══ -->
+<!-- ══════════════════════ 06 GRÁFICAS ══════════════════════ -->
 <section id="graficas">
-  <div class="section-header fade-in">
-    <span class="section-tag">06 · Visualización</span>
+  <div class="sh fi"><span class="stag">06 · Visualización</span>
     <h2>Gráficas del análisis</h2>
-    <p>Tres vistas complementarias del modelo: dispersión con la recta de regresión, comparación de valores reales vs. pronosticados, y análisis de residuos por mes.</p>
+    <p>Cuatro vistas complementarias del modelo: dispersión con recta de regresión, comparación real vs pronosticado, análisis de residuos y evolución de la tendencia.</p>
   </div>
-
-  <div class="card fade-in">
-    <div class="tab-nav">
-      <button class="tab-btn active" onclick="showTab('scatter')">📈 Dispersión + Recta</button>
-      <button class="tab-btn" onclick="showTab('bars')">📊 Real vs. Pronosticado</button>
-      <button class="tab-btn" onclick="showTab('residuos')">📉 Residuos</button>
-      <button class="tab-btn" onclick="showTab('tendencia')">📏 Tendencia precio</button>
+  <div class="card fi">
+    <div class="tabs">
+      <button class="tbtn on" onclick="showT('sc')">📈 Dispersión + Recta</button>
+      <button class="tbtn" onclick="showT('ba')">📊 Real vs Pronosticado</button>
+      <button class="tbtn" onclick="showT('re')">📉 Residuos</button>
+      <button class="tbtn" onclick="showT('te')">📏 Tendencia</button>
     </div>
 
-    <!-- SCATTER -->
-    <div id="tab-scatter" class="chart-panel visible">
-      <div class="card-title">Diagrama de dispersión con recta de regresión y punto de pronóstico</div>
-      <div class="chart-wrap" style="height:380px;">
-        <canvas id="scatterChart" role="img" aria-label="Diagrama de dispersión precio vs demanda con recta de regresión negativa y punto de pronóstico en $400"></canvas>
-      </div>
-      <div class="chart-legend">
-        <div class="leg-item"><div class="leg-dot" style="background:#48cae4;"></div> Datos reales observados</div>
-        <div class="leg-item"><div class="leg-line" style="background:#f4a261;"></div> Recta Ŷ = 5427 − 8.81X</div>
-        <div class="leg-item"><div class="leg-dot" style="background:#57cc99;transform:rotate(45deg);"></div> Pronóstico @ $400 = 1,903 u</div>
+    <div id="tp-sc" class="cpanel vis">
+      <div class="ct2">Diagrama de dispersión con recta de regresión Ŷ = 5,427.38 − 8.81X</div>
+      <div class="cwrap"><canvas id="cvSC" class="chart" height="360" role="img" aria-label="Dispersión precio vs demanda con recta de regresión y punto de pronóstico en $400"></canvas></div>
+      <div class="cleg">
+        <div class="cli"><div class="cld" style="background:#48cae4"></div>Datos reales</div>
+        <div class="cli"><div class="cll" style="background:#f4a261"></div>Recta Ŷ = 5427 − 8.81X</div>
+        <div class="cli"><div class="cld" style="background:#57cc99"></div>Pronóstico $400 = 1,903 u</div>
       </div>
     </div>
 
-    <!-- BARRAS -->
-    <div id="tab-bars" class="chart-panel">
-      <div class="card-title">Comparación mes a mes: demanda real vs. pronosticada</div>
-      <div class="chart-wrap" style="height:340px;">
-        <canvas id="barsChart" role="img" aria-label="Barras agrupadas comparando demanda real con demanda pronosticada por el modelo en 6 meses"></canvas>
-      </div>
-      <div class="chart-legend">
-        <div class="leg-item"><div class="leg-dot" style="background:#48cae4;"></div> Demanda real</div>
-        <div class="leg-item"><div class="leg-dot" style="background:#f4a261;"></div> Demanda pronosticada</div>
+    <div id="tp-ba" class="cpanel">
+      <div class="ct2">Comparación mes a mes: demanda real vs demanda pronosticada</div>
+      <div class="cwrap"><canvas id="cvBA" class="chart" height="320" role="img" aria-label="Barras agrupadas real vs pronosticado 6 meses"></canvas></div>
+      <div class="cleg">
+        <div class="cli"><div class="cld" style="background:#48cae4"></div>Demanda real</div>
+        <div class="cli"><div class="cld" style="background:#f4a261"></div>Demanda pronosticada</div>
       </div>
     </div>
 
-    <!-- RESIDUOS -->
-    <div id="tab-residuos" class="chart-panel">
-      <div class="card-title">Residuos por mes — Cuanto más cercanos a 0, mejor el ajuste</div>
-      <div class="chart-wrap" style="height:300px;">
-        <canvas id="residChart" role="img" aria-label="Barras de residuos por mes mostrando errores pequeños cercanos a cero"></canvas>
-      </div>
-      <div class="chart-legend">
-        <div class="leg-item"><div class="leg-dot" style="background:#57cc99;"></div> Error positivo (subestimó)</div>
-        <div class="leg-item"><div class="leg-dot" style="background:#e63946;"></div> Error negativo (sobreestimó)</div>
+    <div id="tp-re" class="cpanel">
+      <div class="ct2">Residuos por mes — Cuanto más cercanos a 0, mejor el ajuste</div>
+      <div class="cwrap"><canvas id="cvRE" class="chart" height="280" role="img" aria-label="Residuos por mes, valores cercanos a cero"></canvas></div>
+      <div class="cleg">
+        <div class="cli"><div class="cld" style="background:#57cc99"></div>Error positivo (subestimó)</div>
+        <div class="cli"><div class="cld" style="background:#e63946"></div>Error negativo (sobreestimó)</div>
       </div>
     </div>
 
-    <!-- TENDENCIA -->
-    <div id="tab-tendencia" class="chart-panel">
-      <div class="card-title">Evolución del precio mensual y su efecto inverso en la demanda</div>
-      <div class="chart-wrap" style="height:320px;">
-        <canvas id="tendChart" role="img" aria-label="Líneas de tendencia mostrando que precio baja mientras demanda sube mes a mes"></canvas>
-      </div>
-      <div class="chart-legend">
-        <div class="leg-item"><div class="leg-line" style="background:#e63946;"></div> Precio (eje izq.)</div>
-        <div class="leg-item"><div class="leg-line" style="background:#00c9a7;"></div> Demanda (eje der.)</div>
+    <div id="tp-te" class="cpanel">
+      <div class="ct2">Evolución mensual del precio (baja) y la demanda (sube)</div>
+      <div class="cwrap"><canvas id="cvTE" class="chart" height="300" role="img" aria-label="Líneas de tendencia precio baja demanda sube"></canvas></div>
+      <div class="cleg">
+        <div class="cli"><div class="cll" style="background:#e63946"></div>Precio — eje izq.</div>
+        <div class="cli"><div class="cll" style="background:#00c9a7"></div>Demanda — eje der.</div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ═══════════════════════════════════════ 7. PRONÓSTICO ═══ -->
-<section id="pronostico">
-  <div class="section-header fade-in">
-    <span class="section-tag">07 · Pronóstico interactivo</span>
+<!-- ══════════════════════ 07 PRONÓSTICO ══════════════════════ -->
+<section id="pron">
+  <div class="sh fi"><span class="stag">07 · Pronóstico interactivo</span>
     <h2>Simulador de demanda por precio</h2>
-    <p>Mueve el control deslizante para obtener el pronóstico de demanda a cualquier precio y visualizar la ecuación aplicada en tiempo real.</p>
+    <p>Mueve el control deslizante para obtener el pronóstico de demanda a cualquier precio y ver la ecuación aplicada en tiempo real.</p>
   </div>
 
-  <div class="forecast-widget fade-in">
-    <div class="forecast-title">🎯 Pronóstico en tiempo real — Ŷ = 5,427.38 − 8.81X</div>
-    <div class="forecast-main">
-      <div class="forecast-result">
-        <div style="font-size:12px;color:var(--muted);margin-bottom:6px;font-family:var(--font-mono);">DEMANDA PRONOSTICADA</div>
-        <div class="forecast-num" id="fc-num">1,903</div>
-        <div class="forecast-unit">unidades — stock recomendado</div>
+  <div class="fwid fi d1">
+    <div class="fwtitle">🎯 Simulador en tiempo real — Ŷ = 5,427.38 − 8.81X</div>
+    <div class="fwmain">
+      <div>
+        <div style="font-size:10px;color:var(--muted);font-family:monospace;margin-bottom:5px">DEMANDA PRONOSTICADA</div>
+        <div class="fnum" id="fcnum">1,903</div>
+        <div class="funit">unidades — stock recomendado</div>
       </div>
-      <div class="forecast-equation">
-        <div class="forecast-eq-line">Precio ingresado (X):</div>
-        <div class="forecast-eq-calc" id="fc-eq">Ŷ = 5,427.38 − 8.81 × 400</div>
-        <div class="forecast-eq-calc" id="fc-calc">Ŷ = 5,427.38 − 3,524.00</div>
-        <div class="forecast-eq-result" id="fc-res">Ŷ = 1,903.38 ≈ 1,903 unidades</div>
+      <div class="feq">
+        <div class="feline">Precio ingresado (X):</div>
+        <div id="fceq" style="color:var(--sky)">Ŷ = 5,427.38 − 8.81 × 400</div>
+        <div id="fccalc" style="color:var(--sky)">Ŷ = 5,427.38 − 3,524.00</div>
+        <div id="fcres" style="color:var(--teal);font-weight:600">Ŷ = 1,903.38 ≈ 1,903 u</div>
       </div>
     </div>
-    <div class="slider-label">Ajustar precio (rango histórico ± extensión):</div>
-    <div class="slider-row">
-      <span class="slider-endpoints">$370</span>
-      <input type="range" id="fc-slider" min="370" max="530" value="400" step="5" oninput="updateForecast(+this.value)">
-      <span class="slider-endpoints">$530</span>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:6px">Ajustar precio (rango histórico ± extensión):</div>
+    <div class="slrow">
+      <span>$370</span>
+      <input type="range" id="fcsl" min="370" max="530" value="400" step="5" oninput="updF(+this.value)">
+      <span>$530</span>
     </div>
-    <div style="text-align:center;margin-top:10px;">
-      <span style="font-size:12px;color:var(--muted);">Precio actual: </span>
-      <span id="price-display">$400</span>
-    </div>
-    <div id="fc-warning" class="alert alert-amber" style="margin-top:16px;margin-bottom:0;display:none;">
-      ⚠️ Este precio está fuera del rango histórico ($420–$500). El pronóstico es una extrapolación y puede tener menor precisión.
+    <div id="pdisplay">$400</div>
+    <div id="fcwarn" class="alert aa" style="margin-top:14px;margin-bottom:0;display:none">
+      ⚠️ Precio fuera del rango histórico ($420–$500). Pronóstico por extrapolación — puede tener menor precisión.
     </div>
   </div>
 
-  <!-- TABLA REFERENCIA RÁPIDA -->
-  <div class="card fade-in">
-    <div class="card-title">Tabla de referencia rápida — Demanda pronosticada por precio</div>
-    <div class="data-table-wrap">
-      <table id="ref-table">
-        <thead>
-          <tr>
-            <th>Precio X ($)</th>
-            <th>Ŷ = 5,427.38 − 8.81X</th>
-            <th>Demanda estimada (u)</th>
-            <th>En rango histórico</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
+  <div class="card fi d2">
+    <div class="ct2">Tabla de referencia rápida — Demanda pronosticada por nivel de precio</div>
+    <div class="tw">
+      <table>
+        <thead><tr>
+          <th>Precio X ($)</th><th>Ŷ = 5,427.38 − 8.81X</th>
+          <th>Demanda est. (u)</th><th>Rango histórico</th>
+        </tr></thead>
+        <tbody id="reftbody"></tbody>
       </table>
     </div>
   </div>
 </section>
 
-<!-- ═══════════════════════════════════════ 8. CONCLUSIONES ═══ -->
-<section id="conclusiones">
-  <div class="section-header fade-in">
-    <span class="section-tag">08 · Conclusiones</span>
+<!-- ══════════════════════ 08 CONCLUSIONES ══════════════════════ -->
+<section id="concl">
+  <div class="sh fi"><span class="stag">08 · Conclusiones</span>
     <h2>Hallazgos y recomendaciones para ElectroWorld</h2>
   </div>
-
-  <div class="context-grid fade-in">
-    <div class="context-card" style="border-color:rgba(0,201,167,0.3);">
-      <h4><span class="icon">✅</span> Modelo validado</h4>
+  <div class="cgrid fi d1">
+    <div class="cc" style="border-color:rgba(0,201,167,.3)">
+      <h4><span class="ico">✅</span>Modelo validado</h4>
       <ul>
         <li>r = −0.9917: correlación negativa casi perfecta</li>
-        <li>R² = 98.35%: el precio explica casi toda la demanda</li>
+        <li>R² = 98.35%: precio explica casi toda la demanda</li>
         <li>SEE ≈ 45 u: error relativo menor al 4%</li>
         <li>Ecuación confiable para toma de decisiones</li>
       </ul>
     </div>
-    <div class="context-card" style="border-color:rgba(244,162,97,0.3);">
-      <h4><span class="icon">📦</span> Decisión de inventario</h4>
+    <div class="cc" style="border-color:rgba(244,162,97,.3)">
+      <h4><span class="ico">📦</span>Decisión de inventario</h4>
       <ul>
         <li>Para precio $400: preparar 1,903 unidades</li>
-        <li>Con margen de seguridad del 5%: ~2,000 u</li>
+        <li>Con margen de seguridad 5%: ~2,000 u</li>
         <li>Eliminar planificación empírica sin modelo</li>
         <li>Incorporar el modelo en el sistema ERP</li>
       </ul>
     </div>
-    <div class="context-card" style="border-color:rgba(255,209,102,0.3);">
-      <h4><span class="icon">⚡</span> Recomendaciones</h4>
+    <div class="cc" style="border-color:rgba(255,209,102,.3)">
+      <h4><span class="ico">⚡</span>Recomendaciones</h4>
       <ul>
         <li>Actualizar el modelo trimestral con datos frescos</li>
         <li>Agregar variables: estacionalidad, competencia</li>
         <li>Considerar regresión múltiple a futuro</li>
-        <li>Definir precios con simulador antes de cada promo</li>
+        <li>Simular precios antes de cada promoción</li>
       </ul>
     </div>
-    <div class="context-card" style="border-color:rgba(230,57,70,0.3);">
-      <h4><span class="icon">⚠️</span> Limitaciones del modelo</h4>
+    <div class="cc" style="border-color:rgba(230,57,70,.3)">
+      <h4><span class="ico">⚠️</span>Limitaciones</h4>
       <ul>
         <li>Solo 6 observaciones: muestra pequeña</li>
         <li>No captura estacionalidad ni factores externos</li>
-        <li>No extrapolar a precios &lt; $370 o &gt; $540</li>
-        <li>El mercado puede cambiar; revalidar periódicamente</li>
+        <li>No extrapolar a precios &lt; $370 o &gt; $530</li>
+        <li>Revalidar el modelo periódicamente</li>
       </ul>
     </div>
   </div>
-
-  <div class="alert alert-teal fade-in" style="margin-top:24px;">
-    <strong>Conclusión ejecutiva:</strong> ElectroWorld Mayorista S.A. cuenta ahora con un modelo estadístico robusto (R² = 98.35%) que cuantifica con precisión el impacto del precio en la demanda de televisores 50". La ecuación <strong>Ŷ = 5,427.38 − 8.81X</strong> permite anticipar picos de demanda antes de cada promoción, eliminando los quiebres de stock y los excesos de inventario que generaban pérdidas de venta e inmovilización de capital.
+  <div class="alert at fi d2" style="margin-top:20px">
+    <b>Conclusión ejecutiva:</b> ElectroWorld Mayorista S.A. cuenta ahora con un modelo estadístico robusto (R² = 98.35%) que cuantifica el impacto del precio en la demanda de televisores 50". La ecuación <b>Ŷ = 5,427.38 − 8.81X</b> permite anticipar picos de demanda antes de cada promoción, eliminando quiebres de stock y excesos de inventario que generaban pérdidas de venta e inmovilización de capital.
   </div>
 </section>
-
 </main>
 
-<!-- ═══════════════════════════════════════ FOOTER ═══ -->
 <footer>
-  <p>Análisis de <strong>Regresión Lineal Simple</strong> · ElectroWorld Mayorista S.A. · Método de Mínimos Cuadrados</p>
-  <p style="margin-top:6px;">Herramienta: Probabilidades y Estadística · Pronóstico de demanda causal</p>
+  <p>Análisis de <b>Regresión Lineal Simple</b> · ElectroWorld Mayorista S.A. · Método de Mínimos Cuadrados</p>
+  <p style="margin-top:6px">Probabilidades y Estadística · Pronóstico de demanda causal · © 2025</p>
 </footer>
 
-<!-- ═══════════════════════════════════════ BOTONES ═══ -->
-<div class="action-bar">
-  <button class="action-btn" onclick="window.print()">🖨 Imprimir / PDF</button>
-  <button class="action-btn secondary" onclick="scrollToTop()">↑ Inicio</button>
+<div class="fab">
+  <button class="fbtn" onclick="window.print()">🖨 Imprimir / PDF</button>
+  <button class="fbtn sec" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑ Inicio</button>
 </div>
 
-<!-- ═══════════════════════════════════════ SCRIPTS ═══ -->
+<!-- ══════════════════════ SCRIPTS ══════════════════════ -->
 <script>
-// ── DATA ──
-const a = 5427.38, b = -8.8095;
-const meses = ['Mes 1','Mes 2','Mes 3','Mes 4','Mes 5','Mes 6'];
-const precios = [500,480,470,450,440,420];
-const demandas = [1000,1200,1300,1500,1550,1700];
-const pred = precios.map(x => Math.round(a + b*x));
-const residuos = demandas.map((y,i) => y - pred[i]);
+/* ── DATOS ── */
+const A=5427.38, B=-8.8095;
+const meses=['Mes 1','Mes 2','Mes 3','Mes 4','Mes 5','Mes 6'];
+const PX=[500,480,470,450,440,420];
+const DY=[1000,1200,1300,1500,1550,1700];
+const PRED=PX.map(x=>Math.round(A+B*x));
+const RES=DY.map((y,i)=>y-PRED[i]);
 
-// ── RESIDUOS TABLE ──
-const tbody = document.getElementById('resid-tbody');
-let sumR2 = 0;
-meses.forEach((m,i) => {
-  const r = residuos[i], r2 = r*r; sumR2 += r2;
-  const cls = r >= 0 ? 'pos-err' : 'neg-err';
-  tbody.innerHTML += `<tr>
-    <td>${m}</td><td>$${precios[i]}</td><td>${demandas[i].toLocaleString()}</td>
-    <td>${pred[i].toLocaleString()}</td>
-    <td class="${cls}">${r>=0?'+':''}${r}</td>
-    <td>${r2.toLocaleString()}</td></tr>`;
-});
-const see = Math.sqrt(sumR2/(meses.length-2)).toFixed(2);
-document.getElementById('resid-tfoot').innerHTML = `<tr>
-  <td colspan="4" style="text-align:left;font-size:12px;">
-    SEE = √(ΣResiduo² / (n−2)) = √(${sumR2} / ${meses.length-2}) = √${(sumR2/(meses.length-2)).toFixed(2)}
-  </td>
-  <td colspan="2" style="color:var(--sky);font-weight:600;">SEE = ${see} u</td></tr>`;
-
-// ── REF TABLE ──
-const refPrices = [370,380,390,400,410,420,430,440,450,460,470,480,490,500,510,520,530];
-const refTbody = document.querySelector('#ref-table tbody');
-refPrices.forEach(px => {
-  const yhat = Math.round(a + b*px);
-  const inRange = px >= 420 && px <= 500;
-  const rowStyle = inRange ? 'class="highlight-row"' : '';
-  const badge = inRange
-    ? '<span style="color:var(--green);font-size:11px;">✓ Histórico</span>'
-    : '<span style="color:var(--amber);font-size:11px;">⚠ Extrapolación</span>';
-  const eq = `5,427.38 − 8.81 × ${px}`;
-  refTbody.innerHTML += `<tr ${rowStyle}>
-    <td>$${px}</td><td style="font-size:12px;">${eq}</td>
-    <td style="font-weight:500;">${yhat.toLocaleString()}</td><td>${badge}</td></tr>`;
-});
-
-// ── CHARTS ──
-const grd = 'rgba(255,255,255,0.06)';
-const tc = '#8da0b3';
-const baseScaleX = { grid:{color:grd}, ticks:{color:tc,font:{size:11}} };
-const baseScaleY = { grid:{color:grd}, ticks:{color:tc,font:{size:11}} };
-
-// SCATTER
-const lineXs = [370,535];
-const lineYs = lineXs.map(x => a + b*x);
-new Chart(document.getElementById('scatterChart'), {
-  data: { datasets: [
-    { type:'line', label:'Recta', data:[{x:lineXs[0],y:lineYs[0]},{x:lineXs[1],y:lineYs[1]}],
-      borderColor:'#f4a261', borderWidth:2.5, pointRadius:0, tension:0, order:1 },
-    { type:'scatter', label:'Datos reales', data: precios.map((x,i)=>({x,y:demandas[i]})),
-      backgroundColor:'#48cae4', pointRadius:8, pointHoverRadius:11, order:2 },
-    { type:'scatter', label:'Pronóstico', data:[{x:400,y:1903}],
-      backgroundColor:'#57cc99', pointRadius:12, pointStyle:'triangle', order:3 }
-  ]},
-  options: { responsive:true, maintainAspectRatio:false,
-    plugins:{legend:{display:false}, tooltip:{callbacks:{
-      label: ctx => {
-        if(ctx.dataset.label==='Recta') return '';
-        if(ctx.dataset.label==='Pronóstico') return ' Pronóstico @$400: 1,903 u';
-        return ` Precio $${ctx.parsed.x} → ${ctx.parsed.y.toLocaleString()} u`;
-      }
-    }}},
-    scales: {
-      x:{...baseScaleX, type:'linear', min:400, max:520, title:{display:true,text:'Precio (X) — USD',color:tc,font:{size:11}}, ticks:{...baseScaleX.ticks, callback:v=>'$'+v}},
-      y:{...baseScaleY, min:800, max:2100, title:{display:true,text:'Demanda (Y) — unidades',color:tc,font:{size:11}}, ticks:{...baseScaleY.ticks, callback:v=>v.toLocaleString()}}
-    }
-  }
-});
-
-// BARS
-new Chart(document.getElementById('barsChart'), {
-  type:'bar',
-  data:{ labels: meses.map((m,i)=>m+'\n$'+precios[i]),
-    datasets:[
-      { label:'Real', data:demandas, backgroundColor:'rgba(72,202,228,0.75)', borderColor:'#48cae4', borderWidth:1.5, borderRadius:4 },
-      { label:'Pronosticado', data:pred, backgroundColor:'rgba(244,162,97,0.75)', borderColor:'#f4a261', borderWidth:1.5, borderRadius:4 }
-    ]},
-  options:{ responsive:true, maintainAspectRatio:false,
-    plugins:{legend:{display:false}},
-    scales:{
-      x:{...baseScaleX, ticks:{...baseScaleX.ticks, callback:(v,i)=>meses[i]+' ($'+precios[i]+')'}},
-      y:{...baseScaleY, min:800, ticks:{...baseScaleY.ticks, callback:v=>v.toLocaleString()}}
-    }
-  }
-});
-
-// RESIDUOS
-new Chart(document.getElementById('residChart'), {
-  type:'bar',
-  data:{ labels: meses,
-    datasets:[{ label:'Residuo', data:residuos,
-      backgroundColor: residuos.map(r=>r>=0?'rgba(87,204,153,0.75)':'rgba(230,57,70,0.75)'),
-      borderColor: residuos.map(r=>r>=0?'#57cc99':'#e63946'),
-      borderWidth:1.5, borderRadius:4 }]},
-  options:{ responsive:true, maintainAspectRatio:false,
-    plugins:{legend:{display:false}, tooltip:{callbacks:{label:ctx=>' Error: '+(ctx.parsed.y>=0?'+':'')+ctx.parsed.y+' u'}}},
-    scales:{
-      x:{...baseScaleX},
-      y:{...baseScaleY, ticks:{...baseScaleY.ticks, callback:v=>(v>0?'+':'')+v+' u'},
-         title:{display:true,text:'Residuo (u)',color:tc,font:{size:11}}}
-    }
-  }
-});
-
-// TENDENCIA
-new Chart(document.getElementById('tendChart'), {
-  type:'line',
-  data:{ labels:meses,
-    datasets:[
-      { label:'Precio ($)', data:precios, borderColor:'#e63946', backgroundColor:'rgba(230,57,70,0.1)',
-        borderWidth:2.5, pointRadius:5, tension:0.3, yAxisID:'y1', fill:true },
-      { label:'Demanda (u)', data:demandas, borderColor:'#00c9a7', backgroundColor:'rgba(0,201,167,0.1)',
-        borderWidth:2.5, pointRadius:5, tension:0.3, yAxisID:'y2', fill:true }
-    ]},
-  options:{ responsive:true, maintainAspectRatio:false,
-    plugins:{legend:{display:false}},
-    scales:{
-      x:{...baseScaleX},
-      y1:{...baseScaleY, position:'left', title:{display:true,text:'Precio (USD)',color:'#e63946',font:{size:11}}, ticks:{...baseScaleY.ticks, callback:v=>'$'+v}},
-      y2:{...baseScaleY, position:'right', grid:{display:false}, title:{display:true,text:'Demanda (u)',color:'#00c9a7',font:{size:11}}, ticks:{...baseScaleY.ticks, callback:v=>v.toLocaleString()}}
-    }
-  }
-});
-
-// ── TAB SWITCHING ──
-function showTab(id) {
-  ['scatter','bars','residuos','tendencia'].forEach(t => {
-    document.getElementById('tab-'+t).classList.toggle('visible', t===id);
+/* ── TABLA RESIDUOS ── */
+(()=>{
+  let s2=0;
+  const tb=document.getElementById('rtbody');
+  meses.forEach((m,i)=>{
+    const r=RES[i],r2=r*r; s2+=r2;
+    const cls=r>=0?'pe':'ne';
+    tb.innerHTML+=`<tr><td>${m}</td><td>$${PX[i]}</td><td>${DY[i].toLocaleString()}</td>
+      <td>${PRED[i].toLocaleString()}</td>
+      <td class="${cls}">${r>=0?'+':''}${r}</td>
+      <td>${r2.toLocaleString()}</td></tr>`;
   });
-  document.querySelectorAll('.tab-btn').forEach((btn,i) => {
-    btn.classList.toggle('active', ['scatter','bars','residuos','tendencia'][i]===id);
+  const see=Math.sqrt(s2/(meses.length-2)).toFixed(2);
+  document.getElementById('rtfoot').innerHTML=
+    `<tr><td colspan="4" style="font-size:11px;text-align:left">
+      SEE = √(${s2} / ${meses.length-2}) = √${(s2/(meses.length-2)).toFixed(2)}
+    </td><td colspan="2" style="color:var(--sky)">SEE = ${see} u</td></tr>`;
+})();
+
+/* ── TABLA REFERENCIA ── */
+(()=>{
+  const prices=[370,380,390,400,410,420,430,440,450,460,470,480,490,500,510,520,530];
+  const tb=document.getElementById('reftbody');
+  prices.forEach(p=>{
+    const y=Math.round(A+B*p);
+    const ok=p>=420&&p<=500;
+    const rc=ok?'class="hlrow"':'';
+    const badge=ok
+      ?'<span style="color:var(--green);font-size:11px">✓ Histórico</span>'
+      :'<span style="color:var(--amber);font-size:11px">⚠ Extrapolación</span>';
+    tb.innerHTML+=`<tr ${rc}><td>$${p}</td>
+      <td style="font-size:11px">5,427.38 − 8.81 × ${p}</td>
+      <td style="font-weight:600">${y.toLocaleString()}</td>
+      <td>${badge}</td></tr>`;
+  });
+})();
+
+/* ── FORECAST SLIDER ── */
+function updF(p){
+  const y=A+B*p, r=Math.round(y);
+  document.getElementById('fcnum').textContent=r.toLocaleString();
+  document.getElementById('pdisplay').textContent='$'+p;
+  document.getElementById('fceq').textContent=`Ŷ = 5,427.38 − 8.81 × ${p}`;
+  document.getElementById('fccalc').textContent=`Ŷ = 5,427.38 − ${(8.8095*p).toFixed(2)}`;
+  document.getElementById('fcres').textContent=`Ŷ = ${y.toFixed(2)} ≈ ${r.toLocaleString()} u`;
+  document.getElementById('fcwarn').style.display=(p<420||p>500)?'block':'none';
+}
+
+/* ── TABS ── */
+function showT(id){
+  ['sc','ba','re','te'].forEach(t=>{
+    document.getElementById('tp-'+t).classList.toggle('vis',t===id);
+  });
+  document.querySelectorAll('.tbtn').forEach((b,i)=>{
+    b.classList.toggle('on',['sc','ba','re','te'][i]===id);
   });
 }
 
-// ── FORECAST SLIDER ──
-function updateForecast(price) {
-  const yhat = a + b*price;
-  const rounded = Math.round(yhat);
-  document.getElementById('fc-num').textContent = rounded.toLocaleString();
-  document.getElementById('price-display').textContent = '$'+price;
-  document.getElementById('fc-eq').textContent = `Ŷ = 5,427.38 − 8.81 × ${price}`;
-  document.getElementById('fc-calc').textContent = `Ŷ = 5,427.38 − ${(8.8095*price).toFixed(2)}`;
-  document.getElementById('fc-res').textContent = `Ŷ = ${yhat.toFixed(2)} ≈ ${rounded.toLocaleString()} unidades`;
-  const outOfRange = price < 420 || price > 500;
-  document.getElementById('fc-warning').style.display = outOfRange ? 'block' : 'none';
+/* ── CHARTS (Canvas API nativa — sin dependencias) ── */
+const GC='rgba(255,255,255,0.07)', TC='#8da0b3';
+const FONT='13px "Segoe UI",system-ui,sans-serif';
+
+function raf(fn){ requestAnimationFrame(fn) }
+
+/* helpers */
+function mapR(val,min,max,a,b){ return a+(val-min)/(max-min)*(b-a) }
+function clrLine(ctx,x1,y1,x2,y2,clr,w=1.5,dash=[]){
+  ctx.save();ctx.strokeStyle=clr;ctx.lineWidth=w;ctx.setLineDash(dash);
+  ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();ctx.restore();
+}
+function initCanvas(id){
+  const cv=document.getElementById(id);
+  cv.width=cv.offsetWidth||cv.parentElement.offsetWidth||700;
+  return {cv,ctx:cv.getContext('2d'),W:cv.width,H:cv.height};
+}
+function drawAxes(ctx,W,H,pad,xMin,xMax,yMin,yMax,xFmt,yFmt,xSteps=6,ySteps=5){
+  const L=pad.l,R=W-pad.r,T=pad.t,Bo=H-pad.b;
+  ctx.font=FONT; ctx.fillStyle=TC; ctx.textAlign='center';
+  // grid & x ticks
+  for(let i=0;i<=xSteps;i++){
+    const v=xMin+(xMax-xMin)*i/xSteps;
+    const x=mapR(v,xMin,xMax,L,R);
+    clrLine(ctx,x,T,x,Bo,GC);
+    ctx.fillText(xFmt(v),x,Bo+16);
+  }
+  // grid & y ticks
+  ctx.textAlign='right';
+  for(let i=0;i<=ySteps;i++){
+    const v=yMin+(yMax-yMin)*i/ySteps;
+    const y=mapR(v,yMin,yMax,Bo,T);
+    clrLine(ctx,L,y,R,y,GC);
+    ctx.fillText(yFmt(v),L-8,y+4);
+  }
+  // axes
+  clrLine(ctx,L,T,L,Bo,'rgba(255,255,255,0.15)');
+  clrLine(ctx,L,Bo,R,Bo,'rgba(255,255,255,0.15)');
+}
+function dot(ctx,x,y,r,clr,shape='circle'){
+  ctx.save();ctx.fillStyle=clr;
+  if(shape==='triangle'){
+    ctx.beginPath();ctx.moveTo(x,y-r);
+    ctx.lineTo(x+r,y+r);ctx.lineTo(x-r,y+r);ctx.closePath();ctx.fill();
+  } else {
+    ctx.beginPath();ctx.arc(x,y,r,0,2*Math.PI);ctx.fill();
+  }
+  ctx.restore();
 }
 
-// ── SCROLL PROGRESS ──
-window.addEventListener('scroll', () => {
-  const el = document.getElementById('progress-bar');
-  const total = document.body.scrollHeight - window.innerHeight;
-  el.style.width = Math.round((window.scrollY/total)*100)+'%';
-  // NAV highlight
-  const sections = ['contexto','datos','calculo','modelo','validacion','graficas','pronostico','conclusiones'];
-  let current = '';
-  sections.forEach(id => {
-    const sec = document.getElementById(id);
-    if(sec && window.scrollY >= sec.offsetTop - 100) current = id;
+/* SCATTER */
+function drawScatter(){
+  const {cv,ctx,W,H}=initCanvas('cvSC');
+  const pad={l:58,r:24,t:20,b:36};
+  const xMin=395,xMax=515,yMin=800,yMax=2050;
+  const L=pad.l,R=W-pad.r,T=pad.t,Bo=H-pad.b;
+  function tx(v){return mapR(v,xMin,xMax,L,R)}
+  function ty(v){return mapR(v,yMin,yMax,Bo,T)}
+
+  drawAxes(ctx,W,H,pad,xMin,xMax,yMin,yMax,v=>'$'+v,v=>v>=1000?(v/1000).toFixed(1)+'k':v);
+
+  // recta
+  const rx1=tx(xMin),ry1=ty(A+B*xMin),rx2=tx(xMax),ry2=ty(A+B*xMax);
+  ctx.save();ctx.strokeStyle='#f4a261';ctx.lineWidth=2.5;ctx.setLineDash([]);
+  ctx.beginPath();ctx.moveTo(rx1,ry1);ctx.lineTo(rx2,ry2);ctx.stroke();ctx.restore();
+
+  // puntos reales
+  PX.forEach((px,i)=>{
+    const x=tx(px),y=ty(DY[i]);
+    ctx.save();ctx.shadowColor='#48cae4';ctx.shadowBlur=8;
+    dot(ctx,x,y,6,'#48cae4');ctx.restore();
+    // tooltip label
+    ctx.fillStyle=TC;ctx.font='11px monospace';ctx.textAlign='center';
+    ctx.fillText(`($${px}, ${DY[i].toLocaleString()})`,x,y-12);
   });
-  document.querySelectorAll('nav a').forEach(a => {
-    a.classList.toggle('active', a.getAttribute('href')==='#'+current);
+
+  // pronóstico
+  const fx=tx(400),fy=ty(1903);
+  ctx.save();ctx.shadowColor='#57cc99';ctx.shadowBlur=12;
+  dot(ctx,fx,fy,9,'#57cc99','triangle');ctx.restore();
+  ctx.fillStyle='#57cc99';ctx.font='bold 11px monospace';ctx.textAlign='left';
+  ctx.fillText('$400 → 1,903 u',fx+12,fy+4);
+
+  // líneas punteadas pronóstico
+  clrLine(ctx,fx,fy,fx,Bo,'rgba(87,204,153,0.4)',1,[5,4]);
+  clrLine(ctx,L,fy,fx,fy,'rgba(87,204,153,0.4)',1,[5,4]);
+}
+
+/* BARRAS */
+function drawBars(){
+  const {cv,ctx,W,H}=initCanvas('cvBA');
+  const pad={l:58,r:16,t:20,b:48};
+  const yMin=800,yMax=1900;
+  const L=pad.l,R=W-pad.r,T=pad.t,Bo=H-pad.b;
+  const n=meses.length, gW=(R-L)/n;
+  const bW=gW*0.3;
+
+  // grid horizontal
+  for(let i=0;i<=5;i++){
+    const v=yMin+(yMax-yMin)*i/5;
+    const y=mapR(v,yMin,yMax,Bo,T);
+    clrLine(ctx,L,y,R,y,GC);
+    ctx.fillStyle=TC;ctx.font=FONT;ctx.textAlign='right';
+    ctx.fillText(v>=1000?(v/1000).toFixed(1)+'k':v,L-8,y+4);
+  }
+  clrLine(ctx,L,T,L,Bo,'rgba(255,255,255,0.15)');
+  clrLine(ctx,L,Bo,R,Bo,'rgba(255,255,255,0.15)');
+
+  meses.forEach((m,i)=>{
+    const cx=L+gW*i+gW/2;
+    const drawBar=(val,offset,clr)=>{
+      const y=mapR(val,yMin,yMax,Bo,T);
+      const x=cx+offset-bW/2;
+      ctx.fillStyle=clr;
+      ctx.beginPath();ctx.roundRect(x,y,bW,Bo-y,3);ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,0.8)';ctx.font='10px monospace';
+      ctx.textAlign='center';ctx.fillText(val.toLocaleString(),x+bW/2,y-5);
+    };
+    drawBar(DY[i],-bW/2-2,'rgba(72,202,228,0.8)');
+    drawBar(PRED[i],bW/2+2,'rgba(244,162,97,0.8)');
+    ctx.fillStyle=TC;ctx.font='10px monospace';ctx.textAlign='center';
+    ctx.fillText(m,cx,Bo+16);ctx.fillText('$'+PX[i],cx,Bo+30);
+  });
+}
+
+/* RESIDUOS */
+function drawResid(){
+  const {cv,ctx,W,H}=initCanvas('cvRE');
+  const pad={l:66,r:16,t:20,b:36};
+  const rMin=Math.min(...RES)-20, rMax=Math.max(...RES)+20;
+  const L=pad.l,R=W-pad.r,T=pad.t,Bo=H-pad.b;
+  const n=meses.length, gW=(R-L)/n;
+  const bW=gW*0.45;
+  const y0=mapR(0,rMin,rMax,Bo,T);
+
+  for(let i=-3;i<=3;i++){
+    const v=Math.round(rMin+(rMax-rMin)*(i+3)/6);
+    const y=mapR(v,rMin,rMax,Bo,T);
+    clrLine(ctx,L,y,R,y,GC);
+    ctx.fillStyle=TC;ctx.font=FONT;ctx.textAlign='right';
+    ctx.fillText((v>=0?'+':'')+v+' u',L-6,y+4);
+  }
+  clrLine(ctx,L,y0,R,y0,'rgba(255,255,255,0.25)',1.5);
+  clrLine(ctx,L,T,L,Bo,'rgba(255,255,255,0.15)');
+  clrLine(ctx,L,Bo,R,Bo,'rgba(255,255,255,0.15)');
+
+  RES.forEach((r,i)=>{
+    const cx=L+gW*i+gW/2, x=cx-bW/2;
+    const y=mapR(r,rMin,rMax,Bo,T);
+    const clr=r>=0?'rgba(87,204,153,0.8)':'rgba(230,57,70,0.8)';
+    const top=r>=0?y:y0, ht=Math.abs(y0-y);
+    ctx.fillStyle=clr;
+    ctx.beginPath();ctx.roundRect(x,top,bW,ht||2,3);ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.85)';ctx.font='10px monospace';ctx.textAlign='center';
+    ctx.fillText((r>=0?'+':'')+r,cx,r>=0?y-7:y0+ht+14);
+    ctx.fillStyle=TC;ctx.font='10px monospace';
+    ctx.fillText(meses[i],cx,Bo+16);
+  });
+}
+
+/* TENDENCIA */
+function drawTend(){
+  const {cv,ctx,W,H}=initCanvas('cvTE');
+  const pad={l:58,r:68,t:20,b:36};
+  const L=pad.l,R=W-pad.r,T=pad.t,Bo=H-pad.b;
+  const xN=meses.length-1;
+  const pMin=410,pMax=510,dMin=900,dMax=1800;
+  function tx(i){return mapR(i,0,xN,L,R)}
+  function tpY(v){return mapR(v,pMin,pMax,Bo,T)}
+  function tdY(v){return mapR(v,dMin,dMax,Bo,T)}
+
+  // grid
+  for(let i=0;i<=5;i++){
+    const y=T+(Bo-T)*i/5;
+    clrLine(ctx,L,y,R,y,GC);
+  }
+  clrLine(ctx,L,T,L,Bo,'rgba(255,255,255,0.15)');
+  clrLine(ctx,R,T,R,Bo,'rgba(255,255,255,0.15)');
+  clrLine(ctx,L,Bo,R,Bo,'rgba(255,255,255,0.15)');
+
+  // y-axis precio (izq)
+  ctx.fillStyle='#e63946';ctx.font=FONT;ctx.textAlign='right';
+  [410,430,450,470,490,510].forEach(v=>{
+    ctx.fillText('$'+v,L-6,tpY(v)+4);
+  });
+
+  // y-axis demanda (der)
+  ctx.fillStyle='#00c9a7';ctx.textAlign='left';
+  [900,1050,1200,1350,1500,1650,1800].forEach(v=>{
+    ctx.fillText(v.toLocaleString(),R+8,tdY(v)+4);
+  });
+
+  // línea precio
+  ctx.save();ctx.strokeStyle='#e63946';ctx.lineWidth=2.5;ctx.setLineDash([]);
+  ctx.beginPath();PX.forEach((p,i)=>{ctx.lineTo(tx(i),tpY(p))});ctx.stroke();
+  PX.forEach((p,i)=>{dot(ctx,tx(i),tpY(p),4,'#e63946')});ctx.restore();
+
+  // línea demanda
+  ctx.save();ctx.strokeStyle='#00c9a7';ctx.lineWidth=2.5;
+  ctx.beginPath();DY.forEach((d,i)=>{ctx.lineTo(tx(i),tdY(d))});ctx.stroke();
+  DY.forEach((d,i)=>{dot(ctx,tx(i),tdY(d),4,'#00c9a7')});ctx.restore();
+
+  // x labels
+  ctx.fillStyle=TC;ctx.font=FONT;ctx.textAlign='center';
+  meses.forEach((m,i)=>{ctx.fillText(m,tx(i),Bo+16)});
+}
+
+/* ── SCROLL PROGRESS & NAV ── */
+window.addEventListener('scroll',()=>{
+  const pb=document.getElementById('pgbar');
+  const tot=document.body.scrollHeight-window.innerHeight;
+  pb.style.width=Math.round(window.scrollY/tot*100)+'%';
+  const secs=['ctx','datos','calc','modelo','valid','graficas','pron','concl'];
+  let cur='';
+  secs.forEach(id=>{
+    const s=document.getElementById(id);
+    if(s&&window.scrollY>=s.offsetTop-110)cur=id;
+  });
+  document.querySelectorAll('nav a').forEach(a=>{
+    a.classList.toggle('on',a.getAttribute('href')==='#'+cur);
   });
 });
 
-function scrollToTop() { window.scrollTo({top:0,behavior:'smooth'}); }
+/* ── INTERSECTION OBSERVER (fade-in) ── */
+const obs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      e.target.style.opacity='1';
+      e.target.style.transform='none';
+    }
+  });
+},{threshold:0.07});
+document.querySelectorAll('.fi').forEach(el=>{
+  el.style.transition='opacity .55s ease,transform .55s ease';
+  obs.observe(el);
+});
 
-// ── INTERSECTION OBSERVER (fade-in) ──
-const observer = new IntersectionObserver(entries => {
-  entries.forEach(e => { if(e.isIntersecting){ e.target.style.opacity='1'; e.target.style.transform='none'; } });
-}, { threshold:0.08 });
-document.querySelectorAll('.fade-in').forEach(el => {
-  el.style.transition='opacity .6s ease, transform .6s ease';
-  observer.observe(el);
+/* ── INIT CHARTS ── */
+window.addEventListener('load',()=>{
+  drawScatter();drawBars();drawResid();drawTend();
+});
+window.addEventListener('resize',()=>{
+  drawScatter();drawBars();drawResid();drawTend();
 });
 </script>
 </body>
